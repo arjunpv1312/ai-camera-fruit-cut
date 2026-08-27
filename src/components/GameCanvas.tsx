@@ -438,26 +438,31 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const points = bladePointsRef.current;
     if (points.length < 2) return;
 
-    const p1 = points[points.length - 2];
-    const p2 = points[points.length - 1];
-    const sliceAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    // Multi-segment blade sweep checking across recent trajectory points
+    const startIndex = Math.max(0, points.length - 4);
+    for (let i = startIndex; i < points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const sliceAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
-    // Check Boss collision
-    if (bossRef.current && !bossRef.current.isDefeated) {
-      const dist = distToSegment({ x: bossRef.current.x, y: bossRef.current.y }, p1, p2);
-      if (dist <= bossRef.current.radius) {
-        damageBoss(35, p2.x, p2.y);
+      // Check Boss collision
+      if (bossRef.current && !bossRef.current.isDefeated) {
+        const dist = distToSegment({ x: bossRef.current.x, y: bossRef.current.y }, p1, p2);
+        if (dist <= bossRef.current.radius + 18) {
+          damageBoss(35, p2.x, p2.y);
+        }
       }
+
+      // Check Fruit collisions with generous margin (never miss slices)
+      fruitsRef.current.forEach((fruit) => {
+        if (fruit.isSliced) return;
+
+        const dist = distToSegment({ x: fruit.x, y: fruit.y }, p1, p2);
+        if (dist <= fruit.radius + 20) {
+          sliceFruit(fruit, sliceAngle);
+        }
+      });
     }
-
-    fruitsRef.current.forEach((fruit) => {
-      if (fruit.isSliced) return;
-
-      const dist = distToSegment({ x: fruit.x, y: fruit.y }, p1, p2);
-      if (dist <= fruit.radius) {
-        sliceFruit(fruit, sliceAngle);
-      }
-    });
   };
 
   const distToSegment = (p: Point, v: Point, w: Point) => {

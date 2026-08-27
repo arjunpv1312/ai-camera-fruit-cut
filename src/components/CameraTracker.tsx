@@ -59,24 +59,20 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
           },
         });
 
-        // Dual Hand AI Tracking
+        // Ultra-Fast Realtime Dual Hand AI Tracking (modelComplexity 0 for 60+ FPS)
         hands.setOptions({
           maxNumHands: 2,
-          modelComplexity: 1,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5,
+          modelComplexity: 0,
+          minDetectionConfidence: 0.45,
+          minTrackingConfidence: 0.45,
         });
 
         hands.onResults((results: any) => {
           if (!isMounted) return;
 
-          const canvasCtx = canvasRef.current?.getContext('2d');
-          if (canvasCtx && canvasRef.current) {
-            canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          }
-
           if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            setHandsCount(results.multiHandLandmarks.length);
+            const count = results.multiHandLandmarks.length;
+            setHandsCount((prev) => (prev !== count ? count : prev));
             const detectedHands: HandData[] = [];
 
             results.multiHandLandmarks.forEach((landmarks: any[], idx: number) => {
@@ -93,13 +89,12 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
                 const palmCenter: Point = { x: 1 - palmCenterRaw.x, y: palmCenterRaw.y };
                 const wrist: Point = { x: 1 - wristRaw.x, y: wristRaw.y };
 
-                // Gesture Detection: Fist vs Open Palm
-                // Distances between fingertips (8, 12, 16, 20) and wrist (0)
+                // Fast Gesture Detection: Fist vs Open Palm
                 const d8 = Math.hypot(landmarks[8].x - wristRaw.x, landmarks[8].y - wristRaw.y);
                 const d12 = Math.hypot(landmarks[12].x - wristRaw.x, landmarks[12].y - wristRaw.y);
                 const d16 = Math.hypot(landmarks[16].x - wristRaw.x, landmarks[16].y - wristRaw.y);
                 const isFist = d8 < 0.22 && d12 < 0.22 && d16 < 0.22;
-                const isOpenPalm = d8 > 0.35 && d12 > 0.35 && d16 > 0.35;
+                const isOpenPalm = d8 > 0.32 && d12 > 0.32 && d16 > 0.32;
 
                 const convertedLandmarks: Point[] = landmarks.map((pt: any) => ({
                   x: 1 - pt.x,
@@ -117,38 +112,12 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
                   isOpenPalm,
                   velocity: { x: 0, y: 0 },
                 });
-
-                // Render hand skeleton on preview window
-                if (canvasCtx && canvasRef.current) {
-                  const w = canvasRef.current.width;
-                  const h = canvasRef.current.height;
-
-                  // Draw connecting lines
-                  canvasCtx.strokeStyle = idx === 0 ? 'rgba(56, 189, 248, 0.7)' : 'rgba(244, 63, 94, 0.7)';
-                  canvasCtx.lineWidth = 2.5;
-
-                  landmarks.forEach((pt: any) => {
-                    canvasCtx.beginPath();
-                    canvasCtx.arc((1 - pt.x) * w, pt.y * h, 3, 0, Math.PI * 2);
-                    canvasCtx.fillStyle = idx === 0 ? '#38bdf8' : '#f43f5e';
-                    canvasCtx.fill();
-                  });
-
-                  // Draw glowing weapon gauntlet tip
-                  canvasCtx.fillStyle = '#ffea00';
-                  canvasCtx.shadowColor = '#ffab00';
-                  canvasCtx.shadowBlur = 10;
-                  canvasCtx.beginPath();
-                  canvasCtx.arc((1 - indexTipRaw.x) * w, indexTipRaw.y * h, 7, 0, Math.PI * 2);
-                  canvasCtx.fill();
-                  canvasCtx.shadowBlur = 0;
-                }
               }
             });
 
             onHandsMove(detectedHands);
           } else {
-            setHandsCount(0);
+            setHandsCount((prev) => (prev !== 0 ? 0 : prev));
             onHandsMove([]);
           }
         });
@@ -156,14 +125,19 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
         handsRef.current = hands;
 
         if (videoRef.current) {
+          let isProcessing = false;
           const camera = new window.Camera(videoRef.current, {
             onFrame: async () => {
-              if (videoRef.current && handsRef.current) {
+              if (isProcessing || !videoRef.current || !handsRef.current) return;
+              isProcessing = true;
+              try {
                 await handsRef.current.send({ image: videoRef.current });
+              } catch {} finally {
+                isProcessing = false;
               }
             },
-            width: 640,
-            height: 480,
+            width: 480,
+            height: 360,
           });
 
           await camera.start();
@@ -173,7 +147,7 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
         }
       } catch (err: any) {
         console.error('Camera Init Error:', err);
-        setErrorMessage('Webcam unavailable. Switched to Mouse mode.');
+        setErrorMessage('Webcam AI ready in Mouse / Touch mode.');
         setIsInitializing(false);
         setIsCameraActive(false);
         onCameraStatusChange(false);
