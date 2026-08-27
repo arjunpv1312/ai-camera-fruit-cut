@@ -2,11 +2,16 @@ import { useState } from 'react';
 import type {
   Achievement,
   BladeStyle,
+  ColorblindMode,
   GameMode,
   GameStats,
   HandData,
+  HandSkin,
+  Language,
   MathDifficulty,
   MathQuestion,
+  QuizPack,
+  UserProgress,
   WeaponType,
 } from './types/game';
 import { CameraTracker } from './components/CameraTracker';
@@ -15,14 +20,25 @@ import { HUDOverlay } from './components/HUDOverlay';
 import { GameControls } from './components/GameControls';
 import { GameOverModal } from './components/GameOverModal';
 import { NutritionModal } from './components/NutritionModal';
+import { TeacherQuizEditor } from './components/TeacherQuizEditor';
+import { AnalyticsModal } from './components/AnalyticsModal';
+import { TutorialModal } from './components/TutorialModal';
 import { audioEngine } from './utils/audioEngine';
+import { addXp, loadUserProgress, saveUserProgress } from './utils/progression';
 
 export function App() {
+  // User Progression & Preferences
+  const [progress, setProgress] = useState<UserProgress>(loadUserProgress());
+  const [currentLang, setCurrentLang] = useState<Language>('en');
+  const [colorblindMode, setColorblindMode] = useState<ColorblindMode>('none');
+  const [showFps, setShowFps] = useState<boolean>(false);
+
   // Game Settings State
   const [gameMode, setGameMode] = useState<GameMode>('arcade');
   const [currentWeapon, setCurrentWeapon] = useState<WeaponType>('katana');
   const [mathDifficulty, setMathDifficulty] = useState<MathDifficulty>('easy');
   const [bladeStyle, setBladeStyle] = useState<BladeStyle>('electric');
+  const [activeQuizPack, setActiveQuizPack] = useState<QuizPack | null>(null);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
 
@@ -35,14 +51,17 @@ export function App() {
   const [combo, setCombo] = useState<number>(0);
   const [currentMathQuestion, setCurrentMathQuestion] = useState<MathQuestion | null>(null);
 
-  // Modals & Summary State
+  // Modals State
   const [showMenu, setShowMenu] = useState<boolean>(true);
   const [showGameOver, setShowGameOver] = useState<boolean>(false);
   const [showEncyclopedia, setShowEncyclopedia] = useState<boolean>(false);
+  const [showTeacherQuiz, setShowTeacherQuiz] = useState<boolean>(false);
+  const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
+  const [showTutorial, setShowTutorial] = useState<boolean>(false);
   const [lastStats, setLastStats] = useState<GameStats | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
 
-  // Start game action
+  // Start Game Action
   const handleStartGame = () => {
     audioEngine.playButtonClick();
     setIsPlaying(true);
@@ -60,6 +79,27 @@ export function App() {
     setLastStats(stats);
     setAchievements(newAchievements);
     setShowGameOver(true);
+
+    // Update Progress & XP
+    const { updated } = addXp(progress, stats.xpEarned || 100);
+    updated.totalFruitsCut += stats.fruitsCut;
+    if (stats.score > updated.highScore) updated.highScore = stats.score;
+    setProgress(updated);
+    saveUserProgress(updated);
+  };
+
+  // Toggle Hand Skin
+  const handleSelectSkin = (skin: HandSkin) => {
+    const updated = { ...progress, activeSkin: skin };
+    setProgress(updated);
+    saveUserProgress(updated);
+  };
+
+  // Toggle Colorblind Modes
+  const handleToggleColorblind = () => {
+    const modes: ColorblindMode[] = ['none', 'high_contrast', 'deuteranopia', 'protanopia'];
+    const nextIdx = (modes.indexOf(colorblindMode) + 1) % modes.length;
+    setColorblindMode(modes[nextIdx]);
   };
 
   // Toggle Mute Audio
@@ -82,6 +122,10 @@ export function App() {
         handsData={handsData}
         gameMode={gameMode}
         currentWeapon={currentWeapon}
+        activeSkin={progress.activeSkin}
+        colorblindMode={colorblindMode}
+        showFps={showFps}
+        activeQuizPack={activeQuizPack}
         isPlaying={isPlaying}
         isPaused={isPaused}
         bladeStyle={bladeStyle}
@@ -108,7 +152,14 @@ export function App() {
           lives={lives}
           gameMode={gameMode}
           currentWeapon={currentWeapon}
+          currentLang={currentLang}
+          progress={progress}
+          colorblindMode={colorblindMode}
+          showFps={showFps}
           onSelectWeapon={setCurrentWeapon}
+          onChangeLanguage={setCurrentLang}
+          onToggleColorblind={handleToggleColorblind}
+          onToggleFps={() => setShowFps(!showFps)}
           combo={combo}
           isMuted={isMuted}
           isPaused={isPaused}
@@ -116,6 +167,8 @@ export function App() {
           onToggleMute={handleToggleMute}
           onTogglePause={handleTogglePause}
           onOpenEncyclopedia={() => setShowEncyclopedia(true)}
+          onOpenAnalytics={() => setShowAnalytics(true)}
+          onOpenTeacherQuiz={() => setShowTeacherQuiz(true)}
         />
       )}
 
@@ -128,12 +181,18 @@ export function App() {
           setMathDifficulty={setMathDifficulty}
           bladeStyle={bladeStyle}
           setBladeStyle={setBladeStyle}
+          currentLang={currentLang}
+          progress={progress}
+          onSelectSkin={handleSelectSkin}
           isCameraActive={isCameraActive}
           setIsCameraActive={setIsCameraActive}
           isMuted={isMuted}
           setIsMuted={setIsMuted}
           onStartGame={handleStartGame}
           onOpenEncyclopedia={() => setShowEncyclopedia(true)}
+          onOpenAnalytics={() => setShowAnalytics(true)}
+          onOpenTeacherQuiz={() => setShowTeacherQuiz(true)}
+          onOpenTutorial={() => setShowTutorial(true)}
         />
       )}
 
@@ -152,6 +211,25 @@ export function App() {
 
       {/* Fruit Nutrition Encyclopedia Modal */}
       {showEncyclopedia && <NutritionModal onClose={() => setShowEncyclopedia(false)} />}
+
+      {/* Teacher Quiz Creator Modal */}
+      {showTeacherQuiz && (
+        <TeacherQuizEditor
+          onClose={() => setShowTeacherQuiz(false)}
+          onSelectQuizToPlay={(pack) => {
+            setActiveQuizPack(pack);
+            setGameMode('teacher_quiz');
+            setShowTeacherQuiz(false);
+            handleStartGame();
+          }}
+        />
+      )}
+
+      {/* Learning Analytics Dashboard Modal */}
+      {showAnalytics && <AnalyticsModal progress={progress} onClose={() => setShowAnalytics(false)} />}
+
+      {/* Interactive Air Hands Tutorial Modal */}
+      {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} />}
     </div>
   );
 }

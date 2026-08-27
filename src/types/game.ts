@@ -18,6 +18,12 @@ export type FruitType =
 
 export type WeaponType = 'katana' | 'hammer' | 'laser' | 'frost' | 'vortex';
 
+export type HandSkin = 'cyber' | 'holo' | 'ghost' | 'rainbow' | 'gold';
+
+export type Language = 'en' | 'es' | 'fr' | 'de' | 'hi' | 'zh' | 'ja';
+
+export type ColorblindMode = 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia' | 'high_contrast';
+
 export interface WeaponInfo {
   id: WeaponType;
   name: string;
@@ -62,6 +68,32 @@ export interface FruitItem {
   isTarget?: boolean;
 }
 
+export interface BossItem {
+  id: string;
+  name: string;
+  type: 'megamelon' | 'dragon_lord' | 'cyborg_bomb';
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  hp: number;
+  maxHp: number;
+  phase: number;
+  color: string;
+  isDefeated: boolean;
+  hitFlashTimer?: number;
+}
+
+export interface DamageNumber {
+  id: string;
+  x: number;
+  y: number;
+  damage: number;
+  life: number;
+  color: string;
+}
+
 export interface Particle {
   x: number;
   y: number;
@@ -102,14 +134,28 @@ export interface BladePoint {
 
 export type BladeStyle = 'fire' | 'electric' | 'emerald' | 'rainbow' | 'ice' | 'shadow';
 
-export type GameMode = 'arcade' | 'math' | 'nutrition';
+export type GameMode = 'arcade' | 'math' | 'nutrition' | 'boss' | 'teacher_quiz';
 
-export type MathDifficulty = 'easy' | 'medium' | 'hard';
+export type MathDifficulty = 'easy' | 'medium' | 'hard' | 'adaptive';
 
 export interface MathQuestion {
   equation: string;
   answer: number;
   options: number[];
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  correctAnswer: string;
+  options: string[];
+}
+
+export interface QuizPack {
+  id: string;
+  title: string;
+  subject: string;
+  questions: QuizQuestion[];
 }
 
 export interface FruitFact {
@@ -133,6 +179,20 @@ export interface GameStats {
   accuracy: number;
   timePlayedSeconds: number;
   weaponUsed: WeaponType;
+  bossDefeated?: string;
+  xpEarned: number;
+}
+
+export interface UserProgress {
+  level: number;
+  xp: number;
+  nextLevelXp: number;
+  highScore: number;
+  totalFruitsCut: number;
+  unlockedSkins: HandSkin[];
+  activeSkin: HandSkin;
+  completedQuests: string[];
+  unlockedAchievements: string[];
 }
 
 export interface Achievement {
@@ -141,6 +201,15 @@ export interface Achievement {
   description: string;
   icon: string;
   unlocked: boolean;
+}
+
+export interface DailyQuest {
+  id: string;
+  title: string;
+  target: number;
+  current: number;
+  rewardXp: number;
+  completed: boolean;
 }
 
 // Window declaration for MediaPipe CDN scripts

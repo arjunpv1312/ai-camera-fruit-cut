@@ -3,16 +3,21 @@ import type {
   Achievement,
   BladePoint,
   BladeStyle,
+  BossItem,
+  ColorblindMode,
+  DamageNumber,
   FruitItem,
   FruitType,
   GameMode,
   GameStats,
   HandData,
+  HandSkin,
   JuiceSplatter,
   MathDifficulty,
   MathQuestion,
   Particle,
   Point,
+  QuizPack,
   ShockwaveEffect,
   WeaponType,
 } from '../types/game';
@@ -20,12 +25,17 @@ import { audioEngine } from '../utils/audioEngine';
 import { drawFruit, FRUIT_CONFIGS } from '../utils/fruitData';
 import { generateMathQuestion } from '../utils/mathGenerator';
 import { FRUIT_TRIVIA } from '../utils/triviaData';
+import { drawBoss, spawnBossWave } from '../utils/bossData';
 import { WEAPON_CATALOG } from './WeaponSelector';
 
 interface GameCanvasProps {
   handsData: HandData[];
   gameMode: GameMode;
   currentWeapon: WeaponType;
+  activeSkin: HandSkin;
+  colorblindMode: ColorblindMode;
+  showFps: boolean;
+  activeQuizPack?: QuizPack | null;
   isPlaying: boolean;
   isPaused: boolean;
   bladeStyle: BladeStyle;
@@ -41,6 +51,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   handsData,
   gameMode,
   currentWeapon,
+  activeSkin,
+  colorblindMode,
+  showFps,
+  activeQuizPack: _activeQuizPack,
   isPlaying,
   isPaused,
   bladeStyle,
@@ -56,6 +70,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Mutable refs for high performance 60 FPS animation loop
   const fruitsRef = useRef<FruitItem[]>([]);
+  const bossRef = useRef<BossItem | null>(null);
+  const damageNumbersRef = useRef<DamageNumber[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   const splattersRef = useRef<JuiceSplatter[]>([]);
   const shockwavesRef = useRef<ShockwaveEffect[]>([]);
@@ -68,6 +84,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const lastSliceTimeRef = useRef<number>(0);
   const comboCountRef = useRef<number>(0);
   const comboResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // FPS Counter stats
+  const fpsRef = useRef<number>(60);
+  const frameCountRef = useRef<number>(0);
+  const lastFpsTimeRef = useRef<number>(Date.now());
 
   // Score & stats tracking refs
   const scoreRef = useRef<number>(0);
@@ -83,7 +104,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const currentMathRef = useRef<MathQuestion | null>(null);
   const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Setup background splatters & clear state when new game starts
+  // Clear state when new game starts
   useEffect(() => {
     if (isPlaying) {
       scoreRef.current = 0;
@@ -95,6 +116,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       totalSwipesRef.current = 0;
       livesRef.current = 3;
       fruitsRef.current = [];
+      bossRef.current = null;
+      damageNumbersRef.current = [];
       particlesRef.current = [];
       splattersRef.current = [];
       shockwavesRef.current = [];
@@ -110,6 +133,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       if (gameMode === 'math') {
         spawnMathWave();
+      } else if (gameMode === 'boss' && canvasRef.current) {
+        bossRef.current = spawnBossWave('megamelon', canvasRef.current.width);
       } else {
         startFruitSpawning();
       }
@@ -131,7 +156,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const rawX = hand.indexTip.x * width;
       const rawY = hand.indexTip.y * height;
 
-      // Exponential Moving Average (EMA) smoothing for 0-lag trajectory
       const prev = smoothedHandsRef.current[hand.handIndex] || { x: rawX, y: rawY };
       const smoothX = prev.x + (rawX - prev.x) * 0.65;
       const smoothY = prev.y + (rawY - prev.y) * 0.65;
@@ -139,7 +163,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       addBladePoint(smoothX, smoothY, hand.handIndex);
 
-      // Handle Weapon Special Actions
       if (currentWeapon === 'hammer' && (hand.isFist || hand.isOpenPalm)) {
         triggerHammerShockwave(smoothX, smoothY);
       } else if (currentWeapon === 'laser' && hand.isOpenPalm) {
@@ -169,7 +192,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       opacity: 1,
     });
 
-    // Destroy all fruits inside shockwave radius
+    // Damage Boss if active
+    if (bossRef.current && !bossRef.current.isDefeated) {
+      const dist = Math.hypot(bossRef.current.x - x, bossRef.current.y - y);
+      if (dist <= 240 + bossRef.current.radius) {
+        damageBoss(80, x, y);
+      }
+    }
+
     fruitsRef.current.forEach((fruit) => {
       if (fruit.isSliced) return;
       const dist = Math.hypot(fruit.x - x, fruit.y - y);
@@ -192,7 +222,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       opacity: 1,
     });
 
-    // Beam laser ray down screen
+    if (bossRef.current && !bossRef.current.isDefeated) {
+      if (Math.abs(bossRef.current.x - x) < 80) {
+        damageBoss(50, x, y);
+      }
+    }
+
     fruitsRef.current.forEach((fruit) => {
       if (fruit.isSliced) return;
       if (Math.abs(fruit.x - x) < 60 && fruit.y > y) {
@@ -214,7 +249,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       opacity: 0.9,
     });
 
-    // Pull all fruits toward fist center (x, y)
+    if (bossRef.current && !bossRef.current.isDefeated) {
+      damageBoss(40, x, y);
+    }
+
     fruitsRef.current.forEach((fruit) => {
       if (fruit.isSliced) return;
       const dx = x - fruit.x;
@@ -246,9 +284,39 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     });
   };
 
+  // Damage Boss Function
+  const damageBoss = (amount: number, hitX: number, hitY: number) => {
+    if (!bossRef.current || bossRef.current.isDefeated) return;
+    bossRef.current.hp -= amount;
+    bossRef.current.hitFlashTimer = 5;
+
+    damageNumbersRef.current.push({
+      id: `dmg_${Date.now()}_${Math.random()}`,
+      x: hitX + (Math.random() - 0.5) * 40,
+      y: hitY,
+      damage: amount,
+      life: 0,
+      color: '#ffea00',
+    });
+
+    if (bossRef.current.hp <= 0) {
+      bossRef.current.isDefeated = true;
+      scoreRef.current += 1000;
+      if (onScoreUpdate) onScoreUpdate(scoreRef.current);
+
+      // Defeat Explosion
+      createExplosionParticles(bossRef.current.x, bossRef.current.y);
+      audioEngine.playMathSuccess();
+
+      setTimeout(() => {
+        endGame();
+      }, 1500);
+    }
+  };
+
   // Spawn Math equation wave
   const spawnMathWave = () => {
-    const q = generateMathQuestion(mathDifficulty);
+    const q = generateMathQuestion(mathDifficulty === 'adaptive' ? 'medium' : mathDifficulty);
     currentMathRef.current = q;
     if (onQuestionChange) onQuestionChange(q);
 
@@ -373,6 +441,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const p1 = points[points.length - 2];
     const p2 = points[points.length - 1];
     const sliceAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+    // Check Boss collision
+    if (bossRef.current && !bossRef.current.isDefeated) {
+      const dist = distToSegment({ x: bossRef.current.x, y: bossRef.current.y }, p1, p2);
+      if (dist <= bossRef.current.radius) {
+        damageBoss(35, p2.x, p2.y);
+      }
+    }
 
     fruitsRef.current.forEach((fruit) => {
       if (fruit.isSliced) return;
@@ -553,6 +629,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       accuracy,
       timePlayedSeconds: 60,
       weaponUsed: currentWeapon,
+      xpEarned: Math.floor(scoreRef.current * 0.2) + fruitsCutRef.current * 5,
     };
 
     const achievements: Achievement[] = [
@@ -596,9 +673,71 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const height = canvas.height;
       const gravity = 0.38;
 
+      // Calculate FPS
+      frameCountRef.current += 1;
+      const now = Date.now();
+      if (now - lastFpsTimeRef.current >= 1000) {
+        fpsRef.current = frameCountRef.current;
+        frameCountRef.current = 0;
+        lastFpsTimeRef.current = now;
+      }
+
       ctx.clearRect(0, 0, width, height);
 
+      // Colorblind High Contrast Filter
+      if (colorblindMode === 'high_contrast') {
+        ctx.filter = 'contrast(1.5) saturate(1.8)';
+      } else if (colorblindMode !== 'none') {
+        ctx.filter = 'saturate(1.4)';
+      } else {
+        ctx.filter = 'none';
+      }
+
       if (isPlaying && !isPaused) {
+        // Update & Draw Boss if active
+        if (bossRef.current && !bossRef.current.isDefeated) {
+          const boss = bossRef.current;
+          boss.x += boss.vx;
+          boss.y += boss.vy;
+
+          if (boss.x < boss.radius || boss.x > width - boss.radius) boss.vx *= -1;
+          if (boss.y > height * 0.5 || boss.y < 80) boss.vy *= -1;
+          if (boss.hitFlashTimer && boss.hitFlashTimer > 0) boss.hitFlashTimer -= 1;
+
+          drawBoss(ctx, boss);
+
+          // Draw Boss HP Bar
+          ctx.save();
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+          ctx.fillRect(width / 2 - 150, 20, 300, 24);
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#f43f5e';
+          ctx.strokeRect(width / 2 - 150, 20, 300, 24);
+
+          const hpRatio = Math.max(0, boss.hp / boss.maxHp);
+          ctx.fillStyle = '#f43f5e';
+          ctx.fillRect(width / 2 - 148, 22, 296 * hpRatio, 20);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 12px Outfit, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${boss.name} (${Math.max(0, boss.hp)} / ${boss.maxHp} HP)`, width / 2, 36);
+          ctx.restore();
+        }
+
+        // Update & Draw Floating Damage Numbers
+        damageNumbersRef.current.forEach((dmg) => {
+          dmg.y -= 1.5;
+          dmg.life += 1;
+          ctx.save();
+          ctx.fillStyle = dmg.color;
+          ctx.font = 'bold 22px Outfit, sans-serif';
+          ctx.globalAlpha = Math.max(0, 1 - dmg.life / 35);
+          ctx.fillText(`-${dmg.damage}`, dmg.x, dmg.y);
+          ctx.restore();
+        });
+        damageNumbersRef.current = damageNumbersRef.current.filter((d) => d.life < 35);
+
         // Update & Draw Fruits
         fruitsRef.current.forEach((fruit) => {
           if (!fruit.isSliced) {
@@ -611,7 +750,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
             drawFruit(ctx, fruit.type, fruit.x, fruit.y, fruit.radius, fruit.rotation, fruit.label);
 
-            // Frozen Ice Aura overlay
             if (fruit.isFrozen) {
               ctx.save();
               ctx.beginPath();
@@ -645,7 +783,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         fruitsRef.current = fruitsRef.current.filter((f) => f.y < height + 150);
 
-        // Update & Draw Shockwave Effects
+        // Shockwaves
         shockwavesRef.current.forEach((s) => {
           s.radius += 12;
           s.opacity = 1 - s.radius / s.maxRadius;
@@ -661,7 +799,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
         shockwavesRef.current = shockwavesRef.current.filter((s) => s.radius < s.maxRadius);
 
-        // Update & Draw Particles
+        // Particles
         particlesRef.current.forEach((p) => {
           p.x += p.vx;
           p.y += p.vy;
@@ -678,11 +816,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.globalAlpha = 1;
         particlesRef.current = particlesRef.current.filter((p) => p.life < p.maxLife);
 
-        // Draw Dual Hand Skeletons & Weapon Visuals on Canvas
+        // Draw Hands & Blade Trail
         drawHandsAndWeapons(ctx);
-
-        // Draw Blade Trail
         drawBladeTrail(ctx);
+
+        // FPS & Performance HUD Overlay
+        if (showFps) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+          ctx.fillRect(width - 110, 10, 100, 36);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(width - 110, 10, 100, 36);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = 'bold 12px Outfit, sans-serif';
+          ctx.fillText(`FPS: ${fpsRef.current}`, width - 100, 26);
+          ctx.fillText(`OBJ: ${fruitsRef.current.length + particlesRef.current.length}`, width - 100, 40);
+          ctx.restore();
+        }
       }
 
       animationFrameId = requestAnimationFrame(render);
@@ -693,7 +844,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isPlaying, isPaused, bladeStyle, gameMode, currentWeapon]);
+  }, [isPlaying, isPaused, bladeStyle, gameMode, currentWeapon, activeSkin, colorblindMode, showFps]);
 
   // Render Dual Hand Skeleton & Weapon Effects on Canvas
   const drawHandsAndWeapons = (ctx: CanvasRenderingContext2D) => {
@@ -705,19 +856,27 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const py = hand.indexTip.y * h;
 
       ctx.save();
-      // Draw Glowing Weapon Gauntlet Icon over hand tip
       const weaponInfo = WEAPON_CATALOG[currentWeapon];
       ctx.font = '28px Outfit, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(weaponInfo.emoji, px, py);
 
-      // Draw hand palm aura ring
       const palmX = hand.palmCenter.x * w;
       const palmY = hand.palmCenter.y * h;
       ctx.beginPath();
       ctx.arc(palmX, palmY, 20, 0, Math.PI * 2);
-      ctx.strokeStyle = hand.handIndex === 0 ? '#38bdf8' : '#f43f5e';
+
+      // Hand Skin Colors
+      const skinColors: Record<HandSkin, string> = {
+        cyber: hand.handIndex === 0 ? '#38bdf8' : '#f43f5e',
+        holo: '#2dd4bf',
+        ghost: '#c084fc',
+        rainbow: '#f43f5e',
+        gold: '#fbbf24',
+      };
+
+      ctx.strokeStyle = skinColors[activeSkin] || '#38bdf8';
       ctx.lineWidth = 3;
       ctx.stroke();
 
