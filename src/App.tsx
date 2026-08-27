@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type {
   Achievement,
   BladeStyle,
@@ -25,22 +25,50 @@ import { AnalyticsModal } from './components/AnalyticsModal';
 import { TutorialModal } from './components/TutorialModal';
 import { audioEngine } from './utils/audioEngine';
 import { addXp, loadUserProgress, saveUserProgress } from './utils/progression';
+import { loadSessionState, saveSessionState } from './utils/sessionStore';
 
 export function App() {
+  const initialSession = loadSessionState();
+
   // User Progression & Preferences
   const [progress, setProgress] = useState<UserProgress>(loadUserProgress());
-  const [currentLang, setCurrentLang] = useState<Language>('en');
-  const [colorblindMode, setColorblindMode] = useState<ColorblindMode>('none');
-  const [showFps, setShowFps] = useState<boolean>(false);
+  const [currentLang, setCurrentLang] = useState<Language>(initialSession.currentLang);
+  const [colorblindMode, setColorblindMode] = useState<ColorblindMode>(initialSession.colorblindMode);
+  const [showFps, setShowFps] = useState<boolean>(initialSession.showFps);
 
-  // Game Settings State
-  const [gameMode, setGameMode] = useState<GameMode>('arcade');
-  const [currentWeapon, setCurrentWeapon] = useState<WeaponType>('katana');
-  const [mathDifficulty, setMathDifficulty] = useState<MathDifficulty>('easy');
-  const [bladeStyle, setBladeStyle] = useState<BladeStyle>('electric');
+  // Game Settings State (Restored from cache / session storage on refresh)
+  const [gameMode, setGameMode] = useState<GameMode>(initialSession.gameMode);
+  const [currentWeapon, setCurrentWeapon] = useState<WeaponType>(initialSession.currentWeapon);
+  const [mathDifficulty, setMathDifficulty] = useState<MathDifficulty>(initialSession.mathDifficulty);
+  const [bladeStyle, setBladeStyle] = useState<BladeStyle>(initialSession.bladeStyle);
   const [activeQuizPack, setActiveQuizPack] = useState<QuizPack | null>(null);
-  const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isCameraActive, setIsCameraActive] = useState<boolean>(initialSession.isCameraActive);
+  const [isMuted, setIsMuted] = useState<boolean>(initialSession.isMuted);
+
+  // Save session state to localStorage on any change so page refresh restores exact condition
+  useEffect(() => {
+    saveSessionState({
+      gameMode,
+      currentWeapon,
+      mathDifficulty,
+      bladeStyle,
+      currentLang,
+      colorblindMode,
+      showFps,
+      isCameraActive,
+      isMuted,
+    });
+  }, [
+    gameMode,
+    currentWeapon,
+    mathDifficulty,
+    bladeStyle,
+    currentLang,
+    colorblindMode,
+    showFps,
+    isCameraActive,
+    isMuted,
+  ]);
 
   // Gameplay State
   const [isPlaying, setIsPlaying] = useState<boolean>(false);

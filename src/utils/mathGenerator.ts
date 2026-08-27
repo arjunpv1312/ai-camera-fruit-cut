@@ -65,12 +65,24 @@ export function generateMathQuestion(difficulty: MathDifficulty = 'easy'): MathQ
   const optionsSet = new Set<number>();
   optionsSet.add(answer);
 
-  while (optionsSet.size < 4) {
+  let attempts = 0;
+  while (optionsSet.size < 4 && attempts < 15) {
+    attempts++;
     const offset = (Math.floor(Math.random() * 7) + 1) * (Math.random() > 0.5 ? 1 : -1);
     const distractor = answer + offset;
     if (distractor > 0 && distractor !== answer) {
       optionsSet.add(distractor);
     }
+  }
+
+  let fallback = 1;
+  while (optionsSet.size < 4) {
+    if (answer + fallback > 0 && !optionsSet.has(answer + fallback)) {
+      optionsSet.add(answer + fallback);
+    } else if (answer - fallback > 0 && !optionsSet.has(answer - fallback)) {
+      optionsSet.add(answer - fallback);
+    }
+    fallback++;
   }
 
   // Shuffle options

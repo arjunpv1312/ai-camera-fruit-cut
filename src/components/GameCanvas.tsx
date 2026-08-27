@@ -575,40 +575,52 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     createJuiceSplatter(fruit.x, fruit.y, FRUIT_CONFIGS[fruit.type].juiceColors[0]);
   };
 
-  // Particles & Splatters
+  // Particles & Splatters with Object Pooling (Max 60 particles for zero lag)
   const createJuiceParticles = (x: number, y: number, colors: string[]) => {
-    for (let i = 0; i < 20; i++) {
+    // If already has many particles, only add a few to keep 60 FPS silky smooth
+    const count = particlesRef.current.length > 40 ? 6 : 12;
+    for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 8;
+      const speed = 2 + Math.random() * 6;
       particlesRef.current.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         color: colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 5,
+        size: 3 + Math.random() * 4,
         life: 1,
-        maxLife: 30 + Math.random() * 20,
+        maxLife: 20 + Math.random() * 15,
         type: 'juice',
       });
+    }
+
+    // Keep array bounded
+    if (particlesRef.current.length > 70) {
+      particlesRef.current = particlesRef.current.slice(-60);
     }
   };
 
   const createExplosionParticles = (x: number, y: number) => {
-    for (let i = 0; i < 35; i++) {
+    const count = particlesRef.current.length > 30 ? 10 : 20;
+    for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 4 + Math.random() * 12;
+      const speed = 3 + Math.random() * 8;
       particlesRef.current.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         color: Math.random() > 0.5 ? '#ff3d00' : '#ffab00',
-        size: 4 + Math.random() * 6,
+        size: 4 + Math.random() * 4,
         life: 1,
-        maxLife: 40,
+        maxLife: 25,
         type: 'smoke',
       });
+    }
+
+    if (particlesRef.current.length > 70) {
+      particlesRef.current = particlesRef.current.slice(-60);
     }
   };
 
@@ -618,17 +630,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (!bgCtx) return;
 
     const points = [];
-    const radius = 25 + Math.random() * 25;
-    for (let i = 0; i < 8; i++) {
+    const radius = 20 + Math.random() * 18;
+    for (let i = 0; i < 6; i++) {
       points.push({
-        angle: (i * Math.PI) / 4,
-        r: radius * (0.6 + Math.random() * 0.7),
+        angle: (i * Math.PI) / 3,
+        r: radius * (0.6 + Math.random() * 0.5),
       });
     }
 
     bgCtx.save();
     bgCtx.fillStyle = color;
-    bgCtx.globalAlpha = 0.45;
+    bgCtx.globalAlpha = 0.35;
     bgCtx.beginPath();
     bgCtx.moveTo(x + Math.cos(points[0].angle) * points[0].r, y + Math.sin(points[0].angle) * points[0].r);
     for (let i = 1; i < points.length; i++) {
