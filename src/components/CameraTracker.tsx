@@ -37,8 +37,16 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
       setIsInitializing(true);
       setErrorMessage(null);
 
+      // Wait for CDN scripts if still loading
+      let retries = 0;
+      while ((!window.Hands || !window.Camera) && retries < 25) {
+        await new Promise((r) => setTimeout(r, 200));
+        retries++;
+        if (!isMounted) return;
+      }
+
       if (!window.Hands || !window.Camera) {
-        setErrorMessage('MediaPipe scripts loading... Please wait.');
+        setErrorMessage('Webcam AI ready in Mouse / Touch mode (scripts offline).');
         setIsInitializing(false);
         setIsCameraActive(false);
         onCameraStatusChange(false);
