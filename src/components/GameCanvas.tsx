@@ -482,8 +482,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     fruit.rightHalfVx = fruit.vx - Math.cos(normalAngle) * splitSpeed;
     fruit.rightHalfVy = fruit.vy - Math.sin(normalAngle) * splitSpeed;
 
-    // Bomb hit
-    if (fruit.type === 'bomb' || fruit.type === 'junkfood') {
+    // Bomb / Junkfood hit
+    if (fruit.type === 'bomb') {
       audioEngine.playBomb();
       bombsHitRef.current += 1;
       livesRef.current -= 1;
@@ -493,6 +493,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (livesRef.current <= 0) {
         endGame();
       }
+      return;
+    }
+
+    if (fruit.type === 'junkfood') {
+      audioEngine.playBomb();
+      bombsHitRef.current += 1;
+      scoreRef.current = Math.max(0, scoreRef.current - 20);
+      if (onScoreUpdate) onScoreUpdate(scoreRef.current);
+      damageNumbersRef.current.push({
+        id: `dmg_${Date.now()}_${Math.random()}`,
+        x: fruit.x,
+        y: fruit.y,
+        damage: 20,
+        life: 0,
+        color: '#f43f5e',
+      });
+      createExplosionParticles(fruit.x, fruit.y);
       return;
     }
 
@@ -518,6 +535,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
       }
       return;
+    }
+
+    // Nutrition Superfood Fact
+    if (gameMode === 'nutrition' && fruit.label) {
+      damageNumbersRef.current.push({
+        id: `nutr_${Date.now()}_${Math.random()}`,
+        x: fruit.x,
+        y: fruit.y,
+        damage: 50,
+        life: 0,
+        color: '#34d399',
+      });
     }
 
     // Arcade & Nutrition scoring
@@ -854,31 +883,90 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       const px = hand.indexTip.x * w;
       const py = hand.indexTip.y * h;
-
-      ctx.save();
-      const weaponInfo = WEAPON_CATALOG[currentWeapon];
-      ctx.font = '28px Outfit, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(weaponInfo.emoji, px, py);
-
       const palmX = hand.palmCenter.x * w;
       const palmY = hand.palmCenter.y * h;
-      ctx.beginPath();
-      ctx.arc(palmX, palmY, 20, 0, Math.PI * 2);
 
-      // Hand Skin Colors
-      const skinColors: Record<HandSkin, string> = {
-        cyber: hand.handIndex === 0 ? '#38bdf8' : '#f43f5e',
-        holo: '#2dd4bf',
-        ghost: '#c084fc',
-        rainbow: '#f43f5e',
-        gold: '#fbbf24',
+      const skinColors: Record<HandSkin, { primary: string; glow: string; secondary: string }> = {
+        cyber: {
+          primary: hand.handIndex === 0 ? '#38bdf8' : '#f43f5e',
+          glow: hand.handIndex === 0 ? '#0284c7' : '#e11d48',
+          secondary: '#38bdf8',
+        },
+        holo: { primary: '#2dd4bf', glow: '#0d9488', secondary: '#99f6e4' },
+        ghost: { primary: '#c084fc', glow: '#9333ea', secondary: '#f3e8ff' },
+        rainbow: { primary: '#f43f5e', glow: '#fbbf24', secondary: '#38bdf8' },
+        gold: { primary: '#fbbf24', glow: '#d97706', secondary: '#fef08a' },
       };
 
-      ctx.strokeStyle = skinColors[activeSkin] || '#38bdf8';
+      const theme = skinColors[activeSkin] || skinColors.cyber;
+
+      ctx.save();
+
+      // Draw Finger Bone Connections if landmarks are available
+      if (hand.landmarks && hand.landmarks.length >= 21) {
+        const connections = [
+          [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+          [0, 5], [5, 6], [6, 7], [7, 8], // Index
+          [0, 9], [9, 10], [10, 11], [11, 12], // Middle
+          [0, 13], [13, 14], [14, 15], [15, 16], // Ring
+          [0, 17], [17, 18], [18, 19], [19, 20], // Pinky
+          [5, 9], [9, 13], [13, 17], // Knuckles
+        ];
+
+        ctx.strokeStyle = theme.primary;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.shadowColor = theme.glow;
+        ctx.shadowBlur = 12;
+
+        connections.forEach(([i, j]) => {
+          const p1 = hand.landmarks[i];
+          const p2 = hand.landmarks[j];
+          if (p1 && p2) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x * w, p1.y * h);
+            ctx.lineTo(p2.x * w, p2.y * h);
+            ctx.stroke();
+          }
+        });
+
+        // Draw Joints
+        hand.landmarks.forEach((pt, i) => {
+          ctx.beginPath();
+          ctx.arc(pt.x * w, pt.y * h, i === 8 ? 6 : 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = i === 8 ? '#ffea00' : theme.secondary;
+          ctx.fill();
+        });
+      }
+
+      // Palm Energy Core Reactor
+      ctx.beginPath();
+      ctx.arc(palmX, palmY, hand.isFist ? 28 : 22, 0, Math.PI * 2);
+      ctx.fillStyle = hand.isFist ? 'rgba(192, 132, 252, 0.35)' : 'rgba(56, 189, 248, 0.25)';
+      ctx.fill();
+      ctx.strokeStyle = hand.isFist ? '#c084fc' : theme.primary;
       ctx.lineWidth = 3;
       ctx.stroke();
+
+      // Weapon Emoji & Glow Indicator at Index Finger
+      const weaponInfo = WEAPON_CATALOG[currentWeapon];
+      ctx.font = '32px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = theme.glow;
+      ctx.shadowBlur = 16;
+      ctx.fillText(weaponInfo.emoji, px, py - 10);
+
+      // Gesture Feedback Text (Fist / Palm)
+      if (hand.isFist) {
+        ctx.fillStyle = '#c084fc';
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        ctx.fillText('✊ VORTEX', palmX, palmY + 36);
+      } else if (hand.isOpenPalm) {
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        ctx.fillText('✋ PLASMA', palmX, palmY + 36);
+      }
 
       ctx.restore();
     });

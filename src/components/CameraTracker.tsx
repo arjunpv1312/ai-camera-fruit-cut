@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, RefreshCw, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Camera, CameraOff, RefreshCw, Sparkles } from 'lucide-react';
 import type { HandData, Point } from '../types/game';
 
 interface CameraTrackerProps {
@@ -17,7 +17,6 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [showPreview, setShowPreview] = useState<boolean>(true);
   const [isInitializing, setIsInitializing] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [handsCount, setHandsCount] = useState<number>(0);
@@ -203,71 +202,34 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
 
   return (
     <div className="fixed bottom-4 left-4 z-40 flex flex-col items-start gap-2 select-none">
-      {/* Camera PIP Box */}
+      {/* Hidden video element for MediaPipe AI processing (Face NEVER shown on screen) */}
+      <video
+        ref={videoRef}
+        className="hidden"
+        playsInline
+        muted
+        autoPlay
+        style={{ display: 'none' }}
+      />
+      <canvas ref={canvasRef} className="hidden" style={{ display: 'none' }} />
+
+      {/* Futuristic HUD Hand Tracking Status Badge */}
       {isCameraActive && (
-        <div
-          className={`relative overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900/85 backdrop-blur-md shadow-2xl transition-all duration-300 ${
-            showPreview ? 'w-52 h-40' : 'w-52 h-10'
-          }`}
-        >
-          {/* Header Bar */}
-          <div className="flex items-center justify-between px-3 py-2 bg-slate-800/80 border-b border-slate-700/40">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-400">
-              <Sparkles className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
-              <span>Dual AI Hands ({handsCount})</span>
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 backdrop-blur-lg shadow-xl text-xs font-bold font-outfit">
+          <Sparkles className="w-4 h-4 text-sky-400 animate-pulse" />
+          {isInitializing ? (
+            <div className="flex items-center gap-1.5 text-amber-400">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              <span>Calibrating AI Hands...</span>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="p-1 rounded bg-slate-700/50 hover:bg-slate-700 text-slate-300 transition-colors"
-                title={showPreview ? 'Minimize Camera' : 'Expand Camera'}
-              >
-                {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Video Preview */}
-          {showPreview && (
-            <div className="relative w-full h-[calc(100%-2.25rem)] bg-black">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover transform -scale-x-100"
-                playsInline
-                muted
-              />
-              <canvas
-                ref={canvasRef}
-                width={208}
-                height={124}
-                className="absolute inset-0 w-full h-full pointer-events-none"
-              />
-
-              {/* Loading Spinner */}
-              {isInitializing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 text-sky-400 gap-2">
-                  <RefreshCw className="w-6 h-6 animate-spin" />
-                  <span className="text-[10px] font-medium text-slate-300">Starting Dual AI Camera...</span>
-                </div>
-              )}
-
-              {/* Hand Detection Status Pill */}
-              {!isInitializing && (
-                <div
-                  className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 backdrop-blur-md ${
-                    handsCount > 0
-                      ? 'bg-emerald-500/80 text-white shadow-md shadow-emerald-500/20'
-                      : 'bg-amber-500/80 text-slate-950 shadow-md shadow-amber-500/20'
-                  }`}
-                >
-                  {handsCount > 0 ? (
-                    <span>{handsCount === 2 ? '👐 Dual Hands Active' : '🖐️ 1 Hand Active'}</span>
-                  ) : (
-                    <span>Raise Hands in Air 🖐️</span>
-                  )}
-                </div>
-              )}
-            </div>
+          ) : handsCount > 0 ? (
+            <span className="text-emerald-400 flex items-center gap-1">
+              <span>{handsCount === 2 ? '👐 Dual Hands Air Tracking' : '🖐️ 1 Hand Air Tracking'}</span>
+            </span>
+          ) : (
+            <span className="text-slate-400 flex items-center gap-1">
+              <span>Raise Hands in Air 🖐️</span>
+            </span>
           )}
         </div>
       )}
@@ -282,7 +244,7 @@ export const CameraTracker: React.FC<CameraTrackerProps> = ({
         }`}
       >
         {isCameraActive ? <Camera className="w-4 h-4" /> : <CameraOff className="w-4 h-4 text-rose-400" />}
-        <span>{isCameraActive ? 'Dual AI Camera ON' : 'Use Dual Air Hands'}</span>
+        <span>{isCameraActive ? 'AI Hands Vision Active' : 'Enable AI Air Hands'}</span>
       </button>
 
       {/* Error notification */}
