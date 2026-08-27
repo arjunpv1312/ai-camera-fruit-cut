@@ -68,22 +68,22 @@ export const WeaponSelector: React.FC<WeaponSelectorProps> = ({
   };
 
   return (
-    <div className="pointer-events-auto flex items-center justify-center gap-1.5 p-1.5 rounded-2xl bg-slate-900/90 backdrop-blur-lg border border-slate-700/60 shadow-2xl">
+    <div className="pointer-events-auto flex items-center justify-center gap-2 p-2 rounded-3xl glass-panel-luxury border border-slate-700/80 shadow-[0_10px_35px_rgba(0,0,0,0.5)]">
       {weaponsList.map((w) => {
         const isSelected = currentWeapon === w.id;
         return (
           <button
             key={w.id}
             onClick={() => handleSelect(w.id)}
-            className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 ${
+            className={`group relative flex items-center gap-2.5 px-4 py-2 rounded-2xl transition-all duration-300 ${
               isSelected
-                ? `bg-gradient-to-r ${w.color} text-slate-950 font-black shadow-lg scale-105`
-                : 'bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white'
+                ? `bg-gradient-to-r ${w.color} text-slate-950 font-black shadow-lg shadow-sky-500/25 scale-105 ring-2 ring-white/50`
+                : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800'
             }`}
             title={`${w.name}: ${w.description}`}
           >
-            <span className="text-lg leading-none">{w.emoji}</span>
-            <span className="hidden md:inline text-xs font-outfit font-extrabold">{w.name}</span>
+            <span className="text-xl leading-none group-hover:scale-110 transition-transform">{w.emoji}</span>
+            <span className="hidden sm:inline text-xs font-outfit font-black tracking-wide">{w.name}</span>
           </button>
         );
       })}
