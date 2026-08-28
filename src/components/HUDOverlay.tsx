@@ -54,169 +54,108 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   const languages: Language[] = ['en', 'es', 'fr', 'de', 'hi', 'zh', 'ja'];
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-30 flex flex-col justify-between p-4 md:p-6 select-none">
-      {/* Top Header Floating Glass Dock */}
-      <div className="flex items-start justify-between w-full gap-4">
-        {/* Left: Level Badge & High-Gloss Score */}
-        <div className="flex items-center gap-3">
-          <div className="pointer-events-auto flex items-center gap-3.5 px-5 py-3 rounded-3xl glass-panel-luxury border border-slate-700/80 shadow-2xl">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
-              <Trophy className="w-5 h-5 animate-pulse" />
+    <div className="absolute inset-0 pointer-events-none z-30 flex flex-col justify-between p-3 md:p-5 select-none">
+      {/* ─── Top Bar ─── */}
+      <div className="flex items-start justify-between w-full gap-3">
+        {/* Left: Score + Mode Badge */}
+        <div className="flex items-center gap-2.5">
+          <div className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-2xl game-panel">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400">
+              <Trophy className="w-5 h-5 energy-pulse" />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <div className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">
                 {t.level} {progress.level} • {t.score}
               </div>
-              <div className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-white font-outfit leading-none mt-0.5">
+              <div className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-white leading-none mt-0.5">
                 {score.toLocaleString()}
               </div>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-2xl glass-panel-luxury border border-slate-700/60 text-xs font-black font-outfit uppercase tracking-wider text-sky-400">
-            {gameMode === 'arcade' && (
-              <>
-                <Zap className="w-4 h-4 text-amber-400" />
-                <span>{t.arcade}</span>
-              </>
-            )}
-            {gameMode === 'math' && (
-              <>
-                <Calculator className="w-4 h-4 text-emerald-400" />
-                <span>{t.mathNinja}</span>
-              </>
-            )}
-            {gameMode === 'nutrition' && (
-              <>
-                <Award className="w-4 h-4 text-rose-400" />
-                <span>{t.nutritionExplorer}</span>
-              </>
-            )}
-            {gameMode === 'boss' && (
-              <>
-                <Shield className="w-4 h-4 text-purple-400" />
-                <span>{t.bossBattle}</span>
-              </>
-            )}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl game-panel text-[10px] font-black uppercase tracking-[0.12em]">
+            {gameMode === 'arcade' && <><Zap className="w-3.5 h-3.5 text-amber-400" /><span className="text-amber-300">{t.arcade}</span></>}
+            {gameMode === 'math' && <><Calculator className="w-3.5 h-3.5 text-emerald-400" /><span className="text-emerald-300">{t.mathNinja}</span></>}
+            {gameMode === 'nutrition' && <><Award className="w-3.5 h-3.5 text-rose-400" /><span className="text-rose-300">{t.nutritionExplorer}</span></>}
+            {gameMode === 'boss' && <><Shield className="w-3.5 h-3.5 text-purple-400" /><span className="text-purple-300">{t.bossBattle}</span></>}
           </div>
         </div>
 
-        {/* Center: Holographic Math Problem Banner */}
+        {/* Center: Math Equation Banner */}
         {gameMode === 'math' && currentMathQuestion && (
-          <div className="flex flex-col items-center px-8 py-3 rounded-3xl glass-panel-luxury border-2 border-emerald-400/80 shadow-[0_0_40px_-5px_rgba(52,211,153,0.4)] transform hover:scale-105 transition-all">
-            <div className="text-[10px] font-black text-emerald-300 tracking-widest uppercase flex items-center gap-1.5 mb-0.5">
-              <span>SOLVE EQUATION</span>
-            </div>
-            <div className="text-3xl md:text-4xl font-black text-white font-outfit tracking-wider drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-              {currentMathQuestion.equation} = <span className="text-emerald-400 animate-pulse">?</span>
+          <div className="flex flex-col items-center px-6 py-2.5 rounded-2xl game-panel border-2 !border-emerald-500/60 shadow-[0_0_30px_-5px_rgba(52,211,153,0.3)]">
+            <div className="text-[9px] font-black text-emerald-400 tracking-[0.2em] uppercase">SOLVE</div>
+            <div className="text-3xl md:text-4xl font-black text-white tracking-wider">
+              {currentMathQuestion.equation} = <span className="text-emerald-400 energy-pulse">?</span>
             </div>
           </div>
         )}
 
-        {/* Right Side: Hearts & Accessibility Capsule */}
-        <div className="flex items-center gap-2.5">
-          {/* Hearts / Shield Battery */}
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-3xl glass-panel-luxury border border-slate-700/80 shadow-2xl">
+        {/* Right: Hearts + Quick Actions */}
+        <div className="flex items-center gap-2">
+          {/* Hearts */}
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl game-panel">
             {[...Array(3)].map((_, i) => (
               <Heart
                 key={i}
                 className={`w-5 h-5 transition-all duration-300 ${
                   i < lives
-                    ? 'text-rose-500 fill-rose-500 scale-110 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]'
-                    : 'text-slate-700 fill-slate-800 scale-75 opacity-30'
+                    ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.5)]'
+                    : 'text-slate-800 fill-slate-800 scale-75'
                 }`}
               />
             ))}
           </div>
 
-          {/* Language Selector Dropdown */}
-          <div className="pointer-events-auto relative flex items-center glass-panel-luxury rounded-2xl border border-slate-700/60 p-1.5">
-            <Globe className="w-4 h-4 text-sky-400 ml-1.5 mr-1" />
+          {/* Language */}
+          <div className="pointer-events-auto flex items-center game-panel rounded-xl p-1.5">
+            <Globe className="w-3.5 h-3.5 text-amber-400 ml-1 mr-0.5" />
             <select
               value={currentLang}
               onChange={(e) => onChangeLanguage(e.target.value as Language)}
-              className="bg-transparent text-xs font-black text-white focus:outline-none uppercase pr-2 cursor-pointer font-outfit"
+              className="bg-transparent text-[10px] font-black text-white focus:outline-none uppercase pr-1 cursor-pointer"
             >
               {languages.map((lang) => (
-                <option key={lang} value={lang} className="bg-slate-950 text-white">
-                  {lang.toUpperCase()}
-                </option>
+                <option key={lang} value={lang} className="bg-slate-950">{lang.toUpperCase()}</option>
               ))}
             </select>
           </div>
 
           {/* Quick Action Buttons */}
-          <button
-            onClick={onOpenAnalytics}
-            className="pointer-events-auto p-2.5 rounded-2xl glass-panel-luxury hover:bg-slate-800 text-sky-400 transition-all shadow-lg hover:scale-105"
-            title="Learning Analytics"
-          >
-            <TrendingUp className="w-5 h-5" />
+          <button onClick={onOpenAnalytics} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 text-amber-400 transition-all" title="Analytics">
+            <TrendingUp className="w-4 h-4" />
           </button>
-
-          <button
-            onClick={onToggleColorblind}
-            className={`pointer-events-auto p-2.5 rounded-2xl glass-panel-luxury transition-all shadow-lg hover:scale-105 ${
-              colorblindMode !== 'none'
-                ? 'border-amber-400 text-amber-300 ring-2 ring-amber-400/40'
-                : 'text-slate-400 hover:text-white'
-            }`}
-            title="Toggle Colorblind Mode"
-          >
-            <Eye className="w-5 h-5" />
+          <button onClick={onToggleColorblind} className={`pointer-events-auto p-2 rounded-xl game-panel transition-all ${colorblindMode !== 'none' ? '!border-amber-400 text-amber-300' : 'text-slate-600 hover:text-white'}`} title="Colorblind">
+            <Eye className="w-4 h-4" />
           </button>
-
-          <button
-            onClick={onToggleFps}
-            className={`pointer-events-auto p-2.5 rounded-2xl glass-panel-luxury transition-all shadow-lg hover:scale-105 ${
-              showFps
-                ? 'border-emerald-400 text-emerald-300 ring-2 ring-emerald-400/40'
-                : 'text-slate-400 hover:text-white'
-            }`}
-            title="Toggle FPS HUD"
-          >
-            <Activity className="w-5 h-5" />
+          <button onClick={onToggleFps} className={`pointer-events-auto p-2 rounded-xl game-panel transition-all ${showFps ? '!border-emerald-400 text-emerald-300' : 'text-slate-600 hover:text-white'}`} title="FPS">
+            <Activity className="w-4 h-4" />
           </button>
-
-          <button
-            onClick={onOpenEncyclopedia}
-            className="pointer-events-auto p-2.5 rounded-2xl glass-panel-luxury hover:bg-slate-800 text-amber-400 transition-all shadow-lg hover:scale-105"
-            title="Fruit Encyclopedia"
-          >
-            <BookOpen className="w-5 h-5" />
+          <button onClick={onOpenEncyclopedia} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 text-amber-400 transition-all" title="Encyclopedia">
+            <BookOpen className="w-4 h-4" />
           </button>
-
-          <button
-            onClick={onToggleMute}
-            className="pointer-events-auto p-2.5 rounded-2xl glass-panel-luxury hover:bg-slate-800 text-slate-200 transition-all shadow-lg hover:scale-105"
-            title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-          >
-            {isMuted ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Volume2 className="w-5 h-5 text-sky-400" />}
+          <button onClick={onToggleMute} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 transition-all" title={isMuted ? 'Unmute' : 'Mute'}>
+            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
           </button>
-
-          <button
-            onClick={onTogglePause}
-            className="pointer-events-auto p-2.5 rounded-2xl glass-panel-luxury hover:bg-slate-800 text-slate-200 transition-all shadow-lg hover:scale-105"
-            title={isPaused ? 'Resume' : 'Pause'}
-          >
-            {isPaused ? <Play className="w-5 h-5 text-emerald-400 fill-emerald-400" /> : <Pause className="w-5 h-5" />}
+          <button onClick={onTogglePause} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 transition-all">
+            {isPaused ? <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" /> : <Pause className="w-4 h-4 text-slate-300" />}
           </button>
         </div>
       </div>
 
-      {/* Bottom Center: Weapon Arsenal Dock */}
-      <div className="flex justify-center w-full mb-3">
+      {/* ─── Bottom Weapon Dock ─── */}
+      <div className="flex justify-center w-full mb-2">
         <WeaponSelector currentWeapon={currentWeapon} onSelectWeapon={onSelectWeapon} />
       </div>
 
-      {/* Combo Flare Popup */}
+      {/* ─── Combo Burst ─── */}
       {combo >= 2 && (
         <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center animate-bounce">
-          <div className="px-8 py-3 rounded-3xl bg-gradient-to-r from-amber-500 via-rose-500 to-red-600 text-slate-950 font-black text-4xl md:text-6xl font-outfit shadow-[0_0_60px_rgba(245,158,11,0.6)] tracking-wider transform -rotate-3 ring-4 ring-amber-300/80">
+          <div className="px-8 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-slate-950 font-black text-4xl md:text-6xl shadow-[0_0_50px_rgba(251,191,36,0.5)] tracking-wider transform -rotate-2">
             {combo}x {t.combo}
           </div>
-          <span className="text-amber-300 font-black text-sm md:text-lg drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mt-1.5 tracking-wide">
-            {combo >= 4 ? '🔥 ULTRA SUPER SLASH!' : '⚡ GREAT STREAK!'}
+          <span className="text-amber-300 font-black text-sm md:text-base drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] mt-1 tracking-wide">
+            {combo >= 4 ? '🔥 ULTRA SLASH!' : '⚡ GREAT STREAK!'}
           </span>
         </div>
       )}

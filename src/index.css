@@ -2,92 +2,241 @@
 
 @layer base {
   :root {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Outfit', sans-serif;
     color-scheme: dark;
+    --gold: #fbbf24;
+    --ember: #f97316;
+    --cherry: #e11d48;
+    --royal: #7c3aed;
+    --neon-mint: #34d399;
+    --ice-blue: #38bdf8;
+    --deep-void: #050a18;
+    --panel-bg: rgba(8, 15, 35, 0.88);
+    --panel-border: rgba(251, 191, 36, 0.12);
   }
 
   body {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #030712;
-    color: #f8fafc;
+    background-color: var(--deep-void);
+    color: #f1f5f9;
     user-select: none;
     -webkit-user-select: none;
   }
 
-  h1, h2, h3, h4, .font-outfit {
+  h1, h2, h3, h4, .font-display {
     font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
-/* Custom Ultra-Slim Scrollbars */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.4);
-}
+/* ─── Ultra-Slim Premium Scrollbars ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #38bdf8, #818cf8);
+  background: linear-gradient(to bottom, var(--gold), var(--ember));
   border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #38bdf8;
+
+/* ═══════════════════════════════════════════════
+   AAA GAME UI DESIGN SYSTEM
+   Unique identity — NOT a dev tool, NOT an IDE
+   ═══════════════════════════════════════════════ */
+
+/* ─── Cinematic Background Scene ─── */
+.game-scene-bg {
+  background:
+    radial-gradient(ellipse 120% 60% at 50% 0%, rgba(124, 58, 237, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 20% 80%, rgba(251, 191, 36, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 85% 70%, rgba(233, 29, 72, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #050a18 0%, #0a1628 40%, #0d1b3a 100%);
 }
 
-/* Premium AAA Glassmorphism & Neon Glow Utilities */
+/* ─── Premium Game Panel (replaces glass-panel-luxury) ─── */
+.game-panel {
+  background: linear-gradient(145deg, rgba(10, 18, 42, 0.92) 0%, rgba(5, 10, 24, 0.96) 100%);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--panel-border);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.06),
+    0 24px 80px -12px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Keep backward compat with old class name */
 .glass-panel-luxury {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.82) 0%, rgba(3, 7, 18, 0.92) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: linear-gradient(145deg, rgba(10, 18, 42, 0.92) 0%, rgba(5, 10, 24, 0.96) 100%);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--panel-border);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.06),
+    0 24px 80px -12px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+/* ─── Game Card (for mode selection, blade selection, etc.) ─── */
+.game-card {
+  background: linear-gradient(160deg, rgba(15, 23, 50, 0.85) 0%, rgba(8, 12, 30, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+.game-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+.game-card:hover::before { opacity: 1; }
+.game-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(251, 191, 36, 0.25);
+  box-shadow:
+    0 16px 48px -8px rgba(251, 191, 36, 0.15),
+    0 0 0 1px rgba(251, 191, 36, 0.08);
+}
+
+.game-card-active {
+  border-color: var(--gold) !important;
+  box-shadow:
+    0 0 0 2px rgba(251, 191, 36, 0.25),
+    0 16px 48px -8px rgba(251, 191, 36, 0.2),
+    inset 0 0 30px rgba(251, 191, 36, 0.04);
+}
+.game-card-active::before { opacity: 1 !important; }
+.game-card-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+/* glass-card-hover backward compat */
 .glass-card-hover {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .glass-card-hover:hover {
   transform: translateY(-3px) scale(1.015);
-  box-shadow: 0 12px 30px -8px rgba(56, 189, 248, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 30px -8px rgba(251, 191, 36, 0.2);
 }
 
-/* Futuristic Ambient Grid & Spotlights */
-.cyber-grid-bg {
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+/* ─── Floating Fruit Silhouette Decorations ─── */
+@keyframes fruitFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-12px) rotate(5deg); }
+  50% { transform: translateY(-6px) rotate(-3deg); }
+  75% { transform: translateY(-15px) rotate(2deg); }
 }
 
-.ambient-spotlight {
-  background: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.18) 0%, rgba(129, 140, 248, 0.08) 35%, transparent 70%);
+.fruit-float-1 { animation: fruitFloat 6s ease-in-out infinite; }
+.fruit-float-2 { animation: fruitFloat 8s ease-in-out infinite 1s; }
+.fruit-float-3 { animation: fruitFloat 7s ease-in-out infinite 2s; }
+
+/* ─── Cinematic Title Text Shimmer ─── */
+@keyframes titleShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
+.title-shimmer {
+  background-size: 200% auto;
+  animation: titleShimmer 4s linear infinite;
+}
+
+/* ─── Animated Scan Line (game-authentic) ─── */
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.scan-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 10%, rgba(251, 191, 36, 0.15) 50%, transparent 90%);
+  animation: scanLine 6s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─── Energy Arc Border Pulse ─── */
+@keyframes energyPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.energy-pulse { animation: energyPulse 2s ease-in-out infinite; }
+
+/* ─── Button Glow Ring ─── */
+@keyframes glowRing {
+  0%, 100% { box-shadow: 0 0 20px -5px rgba(251, 191, 36, 0.4); }
+  50% { box-shadow: 0 0 35px -5px rgba(251, 191, 36, 0.7); }
+}
+
+.glow-ring { animation: glowRing 2.5s ease-in-out infinite; }
+
+/* ─── CTA Shine Sweep ─── */
 @keyframes lightSweep {
-  0% {
-    transform: translateX(-100%) rotate(45deg);
-  }
-  100% {
-    transform: translateX(300%) rotate(45deg);
-  }
+  0% { transform: translateX(-120%) skewX(-15deg); }
+  100% { transform: translateX(250%) skewX(-15deg); }
 }
+.animate-sweep { animation: lightSweep 3.5s infinite; }
 
-.animate-sweep {
-  animation: lightSweep 4s infinite linear;
-}
-
+/* ─── Slow Float for Decorations ─── */
 @keyframes floatSlow {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float { animation: floatSlow 5s ease-in-out infinite; }
+
+/* ─── Horizontal Divider Ornament ─── */
+.ornament-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.25), rgba(124, 58, 237, 0.15), transparent);
 }
 
-.animate-float {
-  animation: floatSlow 4s ease-in-out infinite;
+/* ─── Ambient Spotlight (kept for modals) ─── */
+.ambient-spotlight {
+  background: radial-gradient(circle at 50% 10%, rgba(124, 58, 237, 0.12) 0%, transparent 60%);
+}
+
+/* ─── Corner Bracket Decorations ─── */
+.corner-brackets {
+  position: relative;
+}
+.corner-brackets::before,
+.corner-brackets::after {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  border-color: rgba(251, 191, 36, 0.3);
+  pointer-events: none;
+}
+.corner-brackets::before {
+  top: -1px; left: -1px;
+  border-top: 2px solid; border-left: 2px solid;
+  border-top-left-radius: 6px;
+}
+.corner-brackets::after {
+  bottom: -1px; right: -1px;
+  border-bottom: 2px solid; border-right: 2px solid;
+  border-bottom-right-radius: 6px;
+}
+
+/* ─── Cyber Grid (removed generic look, replaced with hex mesh) ─── */
+.cyber-grid-bg {
+  background-size: 60px 60px;
+  background-image:
+    linear-gradient(to right, rgba(251, 191, 36, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(124, 58, 237, 0.015) 1px, transparent 1px);
 }

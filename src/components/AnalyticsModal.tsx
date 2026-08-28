@@ -9,111 +9,81 @@ interface AnalyticsModalProps {
 
 export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({ progress, onClose }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl overflow-y-auto select-none">
-      <div className="relative w-full max-w-2xl my-auto bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl shadow-sky-500/10">
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-        >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl overflow-y-auto select-none">
+      <div className="relative w-full max-w-2xl my-auto game-panel rounded-[2rem] p-6 md:p-8 shadow-[0_0_60px_-10px_rgba(251,191,36,0.2)] corner-brackets">
+        <button onClick={onClose} className="absolute top-5 right-5 p-2 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-500 hover:text-white transition-colors border border-slate-800">
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 rounded-2xl bg-sky-500/20 text-sky-400">
+          <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-2xl md:text-3xl font-black text-white font-outfit">Student Learning Analytics 📊</h2>
-            <p className="text-xs text-slate-400">Track accuracy rates, math speed, and skill progression metrics.</p>
+            <h2 className="text-2xl md:text-3xl font-black text-white font-display">Learning Analytics 📊</h2>
+            <p className="text-[11px] text-slate-500">Track accuracy, speed, and skill progression</p>
           </div>
         </div>
 
-        {/* Level Progress Banner */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-slate-700/60 mb-6">
-          <div className="flex items-center justify-between mb-2">
+        {/* Level Progress */}
+        <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 mb-6">
+          <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-400" />
-              <span className="font-extrabold text-white text-base font-outfit">Level {progress.level} Ninja</span>
+              <span className="font-black text-white text-base">Level {progress.level} Ninja</span>
             </div>
-            <span className="text-xs font-bold text-sky-400">
+            <span className="text-[10px] font-black text-amber-400 tracking-wider">
               {progress.xp} / {progress.nextLevelXp} XP
             </span>
           </div>
-
-          {/* XP Bar */}
-          <div className="w-full h-3 rounded-full bg-slate-950 overflow-hidden p-0.5 border border-slate-800">
+          <div className="w-full h-2.5 rounded-full bg-slate-950 overflow-hidden border border-slate-800">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400 transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-500"
               style={{ width: `${Math.min(100, (progress.xp / progress.nextLevelXp) * 100)}%` }}
             />
           </div>
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-          <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/40 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400">
-              <Zap className="w-5 h-5" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-6">
+          {[
+            { icon: <Zap className="w-5 h-5" />, label: 'Total Cut', value: progress.totalFruitsCut, color: 'text-amber-400 bg-amber-500/15 border-amber-500/20' },
+            { icon: <Target className="w-5 h-5" />, label: 'Accuracy Rate', value: '92.4%', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/20' },
+            { icon: <Calculator className="w-5 h-5" />, label: 'Avg Solve', value: '1.8s', color: 'text-purple-400 bg-purple-500/15 border-purple-500/20' },
+          ].map((m, i) => (
+            <div key={i} className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 flex items-center gap-3">
+              <div className={`p-2.5 rounded-lg border ${m.color}`}>{m.icon}</div>
+              <div>
+                <div className="text-[9px] font-black uppercase text-slate-500 tracking-wider">{m.label}</div>
+                <div className="text-xl font-black text-white">{m.value}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">Total Cut</div>
-              <div className="text-xl font-black text-white font-outfit">{progress.totalFruitsCut}</div>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/40 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400">
-              <Target className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">Accuracy Rate</div>
-              <div className="text-xl font-black text-white font-outfit">92.4%</div>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/40 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400">
-              <Calculator className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">Avg Solve Speed</div>
-              <div className="text-xl font-black text-white font-outfit">1.8s</div>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Learning Skill Mastery */}
-        <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/40 mb-6 space-y-3">
-          <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-emerald-400" />
-            <span>Subject Skill Mastery</span>
+        {/* Skill Mastery */}
+        <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 mb-6 space-y-3.5">
+          <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 flex items-center gap-2">
+            <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Skill Mastery</span>
           </div>
-
-          <div>
-            <div className="flex justify-between text-xs font-bold text-slate-300 mb-1">
-              <span>Arithmetic Speed (Addition & Multiplication)</span>
-              <span className="text-emerald-400">Master (94%)</span>
+          {[
+            { name: 'Arithmetic Speed', pct: 94, color: 'bg-emerald-400', label: 'Master (94%)', labelColor: 'text-emerald-400' },
+            { name: 'Nutrition Knowledge', pct: 88, color: 'bg-amber-400', label: 'Advanced (88%)', labelColor: 'text-amber-400' },
+          ].map((skill, i) => (
+            <div key={i}>
+              <div className="flex justify-between text-[11px] font-black text-slate-400 mb-1">
+                <span>{skill.name}</span>
+                <span className={skill.labelColor}>{skill.label}</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-slate-950 overflow-hidden">
+                <div className={`h-full ${skill.color} rounded-full`} style={{ width: `${skill.pct}%` }} />
+              </div>
             </div>
-            <div className="w-full h-2 rounded-full bg-slate-950 overflow-hidden">
-              <div className="h-full bg-emerald-400 rounded-full w-[94%]" />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between text-xs font-bold text-slate-300 mb-1">
-              <span>Science & Nutrition Knowledge</span>
-              <span className="text-sky-400">Advanced (88%)</span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-slate-950 overflow-hidden">
-              <div className="h-full bg-sky-400 rounded-full w-[88%]" />
-            </div>
-          </div>
+          ))}
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm transition-colors border border-slate-700"
-        >
+        <button onClick={onClose} className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-black text-sm border border-slate-800 transition-colors">
           Close Dashboard
         </button>
       </div>
