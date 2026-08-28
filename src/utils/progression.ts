@@ -31,21 +31,25 @@ export const DAILY_QUESTS: DailyQuest[] = [
 
 export function loadUserProgress(): UserProgress {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      return JSON.parse(raw);
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        return JSON.parse(raw);
+      }
     }
-  } catch (e) {
-    console.error('Failed to load progress', e);
+  } catch {
+    // Fallback to default
   }
   return INITIAL_PROGRESS;
 }
 
 export function saveUserProgress(progress: UserProgress) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-  } catch (e) {
-    console.error('Failed to save progress', e);
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    }
+  } catch {
+    // Ignore in non-browser env
   }
 }
 
@@ -61,10 +65,10 @@ export function addXp(progress: UserProgress, xpGain: number): { updated: UserPr
     leveledUp = true;
 
     // Skin Unlocks at milestone levels
-    if (level === 5 && !unlockedSkins.includes('holo')) unlockedSkins.push('holo');
-    if (level === 10 && !unlockedSkins.includes('ghost')) unlockedSkins.push('ghost');
-    if (level === 15 && !unlockedSkins.includes('rainbow')) unlockedSkins.push('rainbow');
-    if (level === 20 && !unlockedSkins.includes('gold')) unlockedSkins.push('gold');
+    if (level === 5 && !unlockedSkins.includes('holo')) unlockedSkins = [...unlockedSkins, 'holo'];
+    if (level === 10 && !unlockedSkins.includes('ghost')) unlockedSkins = [...unlockedSkins, 'ghost'];
+    if (level === 15 && !unlockedSkins.includes('rainbow')) unlockedSkins = [...unlockedSkins, 'rainbow'];
+    if (level === 20 && !unlockedSkins.includes('gold')) unlockedSkins = [...unlockedSkins, 'gold'];
   }
 
   const updated: UserProgress = {

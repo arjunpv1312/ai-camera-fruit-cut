@@ -28,22 +28,26 @@ export const DEFAULT_SESSION: GameSessionState = {
 
 export function loadSessionState(): GameSessionState {
   try {
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-    if (raw) {
-      return { ...DEFAULT_SESSION, ...JSON.parse(raw) };
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (raw) {
+        return { ...DEFAULT_SESSION, ...JSON.parse(raw) };
+      }
     }
-  } catch (e) {
-    console.warn('Failed to load session state', e);
+  } catch {
+    // Return default session
   }
   return DEFAULT_SESSION;
 }
 
 export function saveSessionState(state: Partial<GameSessionState>) {
   try {
-    const current = loadSessionState();
-    const merged = { ...current, ...state };
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(merged));
-  } catch (e) {
-    console.warn('Failed to save session state', e);
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      const current = loadSessionState();
+      const merged = { ...current, ...state };
+      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(merged));
+    }
+  } catch {
+    // Ignore in non-browser env
   }
 }
