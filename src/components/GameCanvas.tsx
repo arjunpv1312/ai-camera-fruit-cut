@@ -579,9 +579,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     createJuiceSplatter(fruit.x, fruit.y, FRUIT_CONFIGS[fruit.type].juiceColors[0]);
   };
 
-  // Particles & Splatters with Object Pooling (Max 45 particles for smooth 60 FPS)
+  // Particles & Splatters with Object Pooling (Max 40 particles for smooth 60 FPS)
   const createJuiceParticles = (x: number, y: number, colors: string[]) => {
-    const count = particlesRef.current.length > 30 ? 4 : 8;
+    const count = particlesRef.current.length > 25 ? 4 : 8;
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 2 + Math.random() * 5;
@@ -598,13 +598,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     }
 
-    if (particlesRef.current.length > 45) {
-      particlesRef.current = particlesRef.current.slice(-40);
+    if (particlesRef.current.length > 40) {
+      particlesRef.current = particlesRef.current.slice(-35);
     }
   };
 
   const createExplosionParticles = (x: number, y: number) => {
-    const count = particlesRef.current.length > 25 ? 8 : 14;
+    const count = particlesRef.current.length > 20 ? 6 : 12;
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 3 + Math.random() * 6;
@@ -621,8 +621,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     }
 
-    if (particlesRef.current.length > 45) {
-      particlesRef.current = particlesRef.current.slice(-40);
+    if (particlesRef.current.length > 40) {
+      particlesRef.current = particlesRef.current.slice(-35);
     }
   };
 
@@ -822,14 +822,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         fruitsRef.current = fruitsRef.current.filter((f) => f.y < height + 150);
 
-        // Shockwaves
+        // Shockwaves (guarded against negative radius)
         shockwavesRef.current.forEach((s) => {
           s.radius += 12;
           s.opacity = 1 - s.radius / s.maxRadius;
 
+          const radius = Math.max(0.1, s.radius);
           ctx.save();
           ctx.beginPath();
-          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
           ctx.strokeStyle = s.color;
           ctx.globalAlpha = Math.max(0, s.opacity);
           ctx.lineWidth = 4;
@@ -838,18 +839,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
         shockwavesRef.current = shockwavesRef.current.filter((s) => s.radius < s.maxRadius);
 
-        // Particles
+        // Particles (guarded against negative radius)
         particlesRef.current.forEach((p) => {
           p.x += p.vx;
           p.y += p.vy;
           p.vy += 0.2;
           p.life += 1;
 
-          const alpha = 1 - p.life / p.maxLife;
+          const alpha = Math.max(0, 1 - p.life / p.maxLife);
+          const radius = Math.max(0.1, p.size * alpha);
           ctx.fillStyle = p.color;
-          ctx.globalAlpha = Math.max(0, alpha);
+          ctx.globalAlpha = alpha;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
           ctx.fill();
         });
         ctx.globalAlpha = 1;
