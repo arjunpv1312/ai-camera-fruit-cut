@@ -15,6 +15,11 @@
     --panel-border: rgba(251, 191, 36, 0.12);
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     margin: 0;
     padding: 0;
@@ -23,11 +28,21 @@
     color: #f1f5f9;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transform: translateZ(0);
   }
 
   h1, h2, h3, h4, .font-display {
     font-family: 'Outfit', sans-serif;
     letter-spacing: -0.02em;
+  }
+
+  canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    transform: translateZ(0);
+    will-change: transform;
   }
 }
 
@@ -51,9 +66,10 @@
     radial-gradient(ellipse 80% 50% at 20% 80%, rgba(251, 191, 36, 0.10) 0%, transparent 50%),
     radial-gradient(ellipse 60% 40% at 85% 70%, rgba(233, 29, 72, 0.08) 0%, transparent 50%),
     linear-gradient(180deg, #050a18 0%, #0a1628 40%, #0d1b3a 100%);
+  transform: translateZ(0);
 }
 
-/* ─── Premium Game Panel (replaces glass-panel-luxury) ─── */
+/* ─── Premium Game Panel ─── */
 .game-panel {
   background: linear-gradient(145deg, rgba(10, 18, 42, 0.92) 0%, rgba(5, 10, 24, 0.96) 100%);
   backdrop-filter: blur(40px);
@@ -64,9 +80,9 @@
     0 24px 80px -12px rgba(0, 0, 0, 0.7),
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  transform: translateZ(0);
 }
 
-/* Keep backward compat with old class name */
 .glass-panel-luxury {
   background: linear-gradient(145deg, rgba(10, 18, 42, 0.92) 0%, rgba(5, 10, 24, 0.96) 100%);
   backdrop-filter: blur(40px);
@@ -76,16 +92,19 @@
     0 0 0 1px rgba(251, 191, 36, 0.06),
     0 24px 80px -12px rgba(0, 0, 0, 0.7),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform: translateZ(0);
 }
 
-/* ─── Game Card (for mode selection, blade selection, etc.) ─── */
+/* ─── Game Card ─── */
 .game-card {
   background: linear-gradient(160deg, rgba(15, 23, 50, 0.85) 0%, rgba(8, 12, 30, 0.95) 100%);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1.25rem;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
   position: relative;
   overflow: hidden;
+  transform: translateZ(0);
+  will-change: transform;
 }
 .game-card::before {
   content: '';
@@ -94,11 +113,11 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.3), transparent);
   opacity: 0;
-  transition: opacity 0.35s;
+  transition: opacity 0.25s;
 }
 .game-card:hover::before { opacity: 1; }
 .game-card:hover {
-  transform: translateY(-4px) scale(1.02);
+  transform: translateY(-3px) scale(1.015);
   border-color: rgba(251, 191, 36, 0.25);
   box-shadow:
     0 16px 48px -8px rgba(251, 191, 36, 0.15),
@@ -121,26 +140,17 @@
   background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
-/* glass-card-hover backward compat */
-.glass-card-hover {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.glass-card-hover:hover {
-  transform: translateY(-3px) scale(1.015);
-  box-shadow: 0 12px 30px -8px rgba(251, 191, 36, 0.2);
-}
-
 /* ─── Floating Fruit Silhouette Decorations ─── */
 @keyframes fruitFloat {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
-  25% { transform: translateY(-12px) rotate(5deg); }
-  50% { transform: translateY(-6px) rotate(-3deg); }
-  75% { transform: translateY(-15px) rotate(2deg); }
+  25% { transform: translateY(-10px) rotate(4deg); }
+  50% { transform: translateY(-5px) rotate(-2deg); }
+  75% { transform: translateY(-12px) rotate(2deg); }
 }
 
-.fruit-float-1 { animation: fruitFloat 6s ease-in-out infinite; }
-.fruit-float-2 { animation: fruitFloat 8s ease-in-out infinite 1s; }
-.fruit-float-3 { animation: fruitFloat 7s ease-in-out infinite 2s; }
+.fruit-float-1 { animation: fruitFloat 6s ease-in-out infinite; will-change: transform; }
+.fruit-float-2 { animation: fruitFloat 8s ease-in-out infinite 1s; will-change: transform; }
+.fruit-float-3 { animation: fruitFloat 7s ease-in-out infinite 2s; will-change: transform; }
 
 /* ─── Cinematic Title Text Shimmer ─── */
 @keyframes titleShimmer {
@@ -153,7 +163,7 @@
   animation: titleShimmer 4s linear infinite;
 }
 
-/* ─── Animated Scan Line (game-authentic) ─── */
+/* ─── Animated Scan Line ─── */
 @keyframes scanLine {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(100vh); }
@@ -192,20 +202,13 @@
 }
 .animate-sweep { animation: lightSweep 3.5s infinite; }
 
-/* ─── Slow Float for Decorations ─── */
-@keyframes floatSlow {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-.animate-float { animation: floatSlow 5s ease-in-out infinite; }
-
 /* ─── Horizontal Divider Ornament ─── */
 .ornament-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.25), rgba(124, 58, 237, 0.15), transparent);
 }
 
-/* ─── Ambient Spotlight (kept for modals) ─── */
+/* ─── Ambient Spotlight ─── */
 .ambient-spotlight {
   background: radial-gradient(circle at 50% 10%, rgba(124, 58, 237, 0.12) 0%, transparent 60%);
 }
@@ -233,7 +236,7 @@
   border-bottom-right-radius: 6px;
 }
 
-/* ─── Cyber Grid (removed generic look, replaced with hex mesh) ─── */
+/* ─── Cyber Grid ─── */
 .cyber-grid-bg {
   background-size: 60px 60px;
   background-image:

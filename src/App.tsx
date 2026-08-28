@@ -45,6 +45,11 @@ export function App() {
   const [isCameraActive, setIsCameraActive] = useState<boolean>(initialSession.isCameraActive);
   const [isMuted, setIsMuted] = useState<boolean>(initialSession.isMuted);
 
+  // Always keep Web Audio engine mute state synced with React state
+  useEffect(() => {
+    audioEngine.setMuted(isMuted);
+  }, [isMuted]);
+
   // Save session state to localStorage on any change so page refresh restores exact condition
   useEffect(() => {
     saveSessionState({
@@ -101,6 +106,28 @@ export function App() {
     setCombo(0);
   };
 
+  // Return to Main Menu anytime
+  const handleGoHome = () => {
+    audioEngine.playButtonClick();
+    setIsPlaying(false);
+    setIsPaused(false);
+    setShowGameOver(false);
+    setShowMenu(true);
+  };
+
+  // Restart / Reset Round
+  const handleResetRound = () => {
+    audioEngine.playButtonClick();
+    setIsPlaying(false);
+    setTimeout(() => {
+      setIsPlaying(true);
+      setIsPaused(false);
+      setScore(0);
+      setLives(3);
+      setCombo(0);
+    }, 50);
+  };
+
   // GameOver handler
   const handleGameOver = (stats: GameStats, newAchievements: Achievement[]) => {
     setIsPlaying(false);
@@ -132,9 +159,11 @@ export function App() {
 
   // Toggle Mute Audio
   const handleToggleMute = () => {
-    const nextMuted = !isMuted;
-    setIsMuted(nextMuted);
-    audioEngine.setMuted(nextMuted);
+    setIsMuted((prev) => {
+      const next = !prev;
+      audioEngine.setMuted(next);
+      return next;
+    });
   };
 
   // Toggle Pause
@@ -197,6 +226,8 @@ export function App() {
           onOpenEncyclopedia={() => setShowEncyclopedia(true)}
           onOpenAnalytics={() => setShowAnalytics(true)}
           onOpenTeacherQuiz={() => setShowTeacherQuiz(true)}
+          onGoHome={handleGoHome}
+          onResetRound={handleResetRound}
         />
       )}
 
@@ -230,10 +261,7 @@ export function App() {
           stats={lastStats}
           achievements={achievements}
           onPlayAgain={handleStartGame}
-          onGoHome={() => {
-            setShowGameOver(false);
-            setShowMenu(true);
-          }}
+          onGoHome={handleGoHome}
         />
       )}
 

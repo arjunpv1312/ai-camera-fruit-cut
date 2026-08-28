@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Pause, Play, Heart, Trophy, Zap, Calculator, Award, BookOpen, Globe, TrendingUp, Activity, Eye, Shield } from 'lucide-react';
+import { Volume2, VolumeX, Pause, Play, Heart, Trophy, Zap, Calculator, Award, BookOpen, Globe, TrendingUp, Activity, Eye, Shield, Home, RotateCcw } from 'lucide-react';
 import type { ColorblindMode, GameMode, Language, MathQuestion, UserProgress, WeaponType } from '../types/game';
 import { WeaponSelector } from './WeaponSelector';
 import { TRANSLATIONS } from '../utils/i18n';
@@ -26,6 +26,8 @@ interface HUDOverlayProps {
   onOpenEncyclopedia: () => void;
   onOpenAnalytics: () => void;
   onOpenTeacherQuiz: () => void;
+  onGoHome: () => void;
+  onResetRound: () => void;
 }
 
 export const HUDOverlay: React.FC<HUDOverlayProps> = ({
@@ -49,6 +51,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   onTogglePause,
   onOpenEncyclopedia,
   onOpenAnalytics,
+  onGoHome,
+  onResetRound,
 }) => {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   const languages: Language[] = ['en', 'es', 'fr', 'de', 'hi', 'zh', 'ja'];
@@ -57,11 +61,32 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
     <div className="absolute inset-0 pointer-events-none z-30 flex flex-col justify-between p-3 md:p-5 select-none">
       {/* ─── Top Bar ─── */}
       <div className="flex items-start justify-between w-full gap-3">
-        {/* Left: Score + Mode Badge */}
-        <div className="flex items-center gap-2.5">
-          <div className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-2xl game-panel">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400">
-              <Trophy className="w-5 h-5 energy-pulse" />
+        {/* Left: Score + Mode Badge + Home & Reset Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Home Button */}
+          <button
+            onClick={onGoHome}
+            className="pointer-events-auto flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl game-panel hover:!border-amber-400 text-slate-300 hover:text-white transition-all shadow-lg active:scale-95"
+            title="Return to Main Menu"
+          >
+            <Home className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline text-xs font-black uppercase tracking-wider">Menu</span>
+          </button>
+
+          {/* Reset / Restart Button */}
+          <button
+            onClick={onResetRound}
+            className="pointer-events-auto flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl game-panel hover:!border-amber-400 text-slate-300 hover:text-white transition-all shadow-lg active:scale-95"
+            title="Restart Mission"
+          >
+            <RotateCcw className="w-4 h-4 text-sky-400" />
+            <span className="hidden sm:inline text-xs font-black uppercase tracking-wider">Restart</span>
+          </button>
+
+          {/* Level & Score Capsule */}
+          <div className="pointer-events-auto flex items-center gap-3 px-4 py-2 rounded-2xl game-panel">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400">
+              <Trophy className="w-4 h-4 energy-pulse" />
             </div>
             <div>
               <div className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">
@@ -73,7 +98,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl game-panel text-[10px] font-black uppercase tracking-[0.12em]">
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl game-panel text-[10px] font-black uppercase tracking-[0.12em]">
             {gameMode === 'arcade' && <><Zap className="w-3.5 h-3.5 text-amber-400" /><span className="text-amber-300">{t.arcade}</span></>}
             {gameMode === 'math' && <><Calculator className="w-3.5 h-3.5 text-emerald-400" /><span className="text-emerald-300">{t.mathNinja}</span></>}
             {gameMode === 'nutrition' && <><Award className="w-3.5 h-3.5 text-rose-400" /><span className="text-rose-300">{t.nutritionExplorer}</span></>}
@@ -122,22 +147,22 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
           </div>
 
           {/* Quick Action Buttons */}
-          <button onClick={onOpenAnalytics} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 text-amber-400 transition-all" title="Analytics">
+          <button onClick={onOpenAnalytics} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 text-amber-400 transition-all shadow-md hover:scale-105" title="Analytics">
             <TrendingUp className="w-4 h-4" />
           </button>
-          <button onClick={onToggleColorblind} className={`pointer-events-auto p-2 rounded-xl game-panel transition-all ${colorblindMode !== 'none' ? '!border-amber-400 text-amber-300' : 'text-slate-600 hover:text-white'}`} title="Colorblind">
+          <button onClick={onToggleColorblind} className={`pointer-events-auto p-2 rounded-xl game-panel transition-all shadow-md hover:scale-105 ${colorblindMode !== 'none' ? '!border-amber-400 text-amber-300' : 'text-slate-600 hover:text-white'}`} title="Colorblind">
             <Eye className="w-4 h-4" />
           </button>
-          <button onClick={onToggleFps} className={`pointer-events-auto p-2 rounded-xl game-panel transition-all ${showFps ? '!border-emerald-400 text-emerald-300' : 'text-slate-600 hover:text-white'}`} title="FPS">
+          <button onClick={onToggleFps} className={`pointer-events-auto p-2 rounded-xl game-panel transition-all shadow-md hover:scale-105 ${showFps ? '!border-emerald-400 text-emerald-300' : 'text-slate-600 hover:text-white'}`} title="FPS">
             <Activity className="w-4 h-4" />
           </button>
-          <button onClick={onOpenEncyclopedia} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 text-amber-400 transition-all" title="Encyclopedia">
+          <button onClick={onOpenEncyclopedia} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 text-amber-400 transition-all shadow-md hover:scale-105" title="Encyclopedia">
             <BookOpen className="w-4 h-4" />
           </button>
-          <button onClick={onToggleMute} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 transition-all" title={isMuted ? 'Unmute' : 'Mute'}>
+          <button onClick={onToggleMute} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 transition-all shadow-md hover:scale-105" title={isMuted ? 'Unmute' : 'Mute'}>
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
           </button>
-          <button onClick={onTogglePause} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 transition-all">
+          <button onClick={onTogglePause} className="pointer-events-auto p-2 rounded-xl game-panel hover:!border-amber-500/30 transition-all shadow-md hover:scale-105" title={isPaused ? 'Resume' : 'Pause'}>
             {isPaused ? <Play className="w-4 h-4 text-emerald-400 fill-emerald-400" /> : <Pause className="w-4 h-4 text-slate-300" />}
           </button>
         </div>

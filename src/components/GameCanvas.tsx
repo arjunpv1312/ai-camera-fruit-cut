@@ -68,7 +68,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Mutable refs for high performance 60 FPS animation loop
+  // Performance refs for 60 FPS animation loop
   const fruitsRef = useRef<FruitItem[]>([]);
   const bossRef = useRef<BossItem | null>(null);
   const damageNumbersRef = useRef<DamageNumber[]>([]);
@@ -81,7 +81,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const smoothedHandsRef = useRef<Record<number, Point>>({});
 
   const isMouseDownRef = useRef<boolean>(false);
-  const lastSliceTimeRef = useRef<number>(0);
+  const lastSliceSoundTimeRef = useRef<number>(0);
   const comboCountRef = useRef<number>(0);
   const comboResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -157,8 +157,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const rawY = hand.indexTip.y * height;
 
       const prev = smoothedHandsRef.current[hand.handIndex] || { x: rawX, y: rawY };
-      const smoothX = prev.x + (rawX - prev.x) * 0.65;
-      const smoothY = prev.y + (rawY - prev.y) * 0.65;
+      const smoothX = prev.x + (rawX - prev.x) * 0.7;
+      const smoothY = prev.y + (rawY - prev.y) * 0.7;
       smoothedHandsRef.current[hand.handIndex] = { x: smoothX, y: smoothY };
 
       addBladePoint(smoothX, smoothY, hand.handIndex);
@@ -178,8 +178,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   // Weapon Action 1: Thunder Hammer Shockwave
   const triggerHammerShockwave = (x: number, y: number) => {
     const now = Date.now();
-    if (now - lastSliceTimeRef.current < 250) return;
-    lastSliceTimeRef.current = now;
+    if (now - lastSliceSoundTimeRef.current < 250) return;
+    lastSliceSoundTimeRef.current = now;
 
     audioEngine.playHammerShockwave();
     shockwavesRef.current.push({
@@ -192,7 +192,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       opacity: 1,
     });
 
-    // Damage Boss if active
     if (bossRef.current && !bossRef.current.isDefeated) {
       const dist = Math.hypot(bossRef.current.x - x, bossRef.current.y - y);
       if (dist <= 240 + bossRef.current.radius) {
@@ -304,7 +303,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       scoreRef.current += 1000;
       if (onScoreUpdate) onScoreUpdate(scoreRef.current);
 
-      // Defeat Explosion
       createExplosionParticles(bossRef.current.x, bossRef.current.y);
       audioEngine.playMathSuccess();
 
@@ -418,15 +416,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     bladePointsRef.current.push({ x, y, time: now, handIndex });
     totalSwipesRef.current += 1;
 
-    bladePointsRef.current = bladePointsRef.current.filter((p) => now - p.time < 200);
+    // Prune stale points quickly (keep at most 180ms)
+    bladePointsRef.current = bladePointsRef.current.filter((p) => now - p.time < 180);
 
     if (bladePointsRef.current.length >= 3) {
       const pPrev = bladePointsRef.current[bladePointsRef.current.length - 3];
       const dist = Math.hypot(x - pPrev.x, y - pPrev.y);
-      if (dist > 40 && now - lastSliceTimeRef.current > 160) {
+      if (dist > 35 && now - lastSliceSoundTimeRef.current > 140) {
         if (currentWeapon === 'katana') audioEngine.playKatanaSlice();
         else audioEngine.playSwish();
-        lastSliceTimeRef.current = now;
+        lastSliceSoundTimeRef.current = now;
       }
     }
 
@@ -438,7 +437,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const points = bladePointsRef.current;
     if (points.length < 2) return;
 
-    // Multi-segment blade sweep checking across recent trajectory points
     const startIndex = Math.max(0, points.length - 4);
     for (let i = startIndex; i < points.length - 1; i++) {
       const p1 = points[i];
@@ -473,7 +471,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
   };
 
-  // Slice fruit action & scoring
+  // Slice fruit action & scoring (Optimized Zero-Lag execution)
   const sliceFruit = (fruit: FruitItem, sliceAngle: number) => {
     fruit.isSliced = true;
     fruit.sliceAngle = sliceAngle;
@@ -487,7 +485,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     fruit.rightHalfVx = fruit.vx - Math.cos(normalAngle) * splitSpeed;
     fruit.rightHalfVy = fruit.vy - Math.sin(normalAngle) * splitSpeed;
 
-    // Bomb / Junkfood hit
+    // Bomb hit
     if (fruit.type === 'bomb') {
       audioEngine.playBomb();
       bombsHitRef.current += 1;
@@ -501,6 +499,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       return;
     }
 
+    // Junkfood hit
     if (fruit.type === 'junkfood') {
       audioEngine.playBomb();
       bombsHitRef.current += 1;
@@ -554,7 +553,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     }
 
-    // Arcade & Nutrition scoring
+    // Standard Fruit Slice Audio & Scoring
     audioEngine.playSplat();
     fruitsCutRef.current += 1;
     scoreRef.current += FRUIT_CONFIGS[fruit.type].points;
@@ -580,52 +579,50 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     createJuiceSplatter(fruit.x, fruit.y, FRUIT_CONFIGS[fruit.type].juiceColors[0]);
   };
 
-  // Particles & Splatters with Object Pooling (Max 60 particles for zero lag)
+  // Particles & Splatters with Object Pooling (Max 45 particles for smooth 60 FPS)
   const createJuiceParticles = (x: number, y: number, colors: string[]) => {
-    // If already has many particles, only add a few to keep 60 FPS silky smooth
-    const count = particlesRef.current.length > 40 ? 6 : 12;
+    const count = particlesRef.current.length > 30 ? 4 : 8;
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 6;
+      const speed = 2 + Math.random() * 5;
       particlesRef.current.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         color: colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 4,
+        size: 3 + Math.random() * 3,
         life: 1,
-        maxLife: 20 + Math.random() * 15,
+        maxLife: 18 + Math.random() * 10,
         type: 'juice',
       });
     }
 
-    // Keep array bounded
-    if (particlesRef.current.length > 70) {
-      particlesRef.current = particlesRef.current.slice(-60);
+    if (particlesRef.current.length > 45) {
+      particlesRef.current = particlesRef.current.slice(-40);
     }
   };
 
   const createExplosionParticles = (x: number, y: number) => {
-    const count = particlesRef.current.length > 30 ? 10 : 20;
+    const count = particlesRef.current.length > 25 ? 8 : 14;
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 3 + Math.random() * 8;
+      const speed = 3 + Math.random() * 6;
       particlesRef.current.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         color: Math.random() > 0.5 ? '#ff3d00' : '#ffab00',
-        size: 4 + Math.random() * 4,
+        size: 3.5 + Math.random() * 3,
         life: 1,
-        maxLife: 25,
+        maxLife: 20,
         type: 'smoke',
       });
     }
 
-    if (particlesRef.current.length > 70) {
-      particlesRef.current = particlesRef.current.slice(-60);
+    if (particlesRef.current.length > 45) {
+      particlesRef.current = particlesRef.current.slice(-40);
     }
   };
 
@@ -635,7 +632,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (!bgCtx) return;
 
     const points = [];
-    const radius = 20 + Math.random() * 18;
+    const radius = 18 + Math.random() * 16;
     for (let i = 0; i < 6; i++) {
       points.push({
         angle: (i * Math.PI) / 3,
@@ -645,7 +642,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     bgCtx.save();
     bgCtx.fillStyle = color;
-    bgCtx.globalAlpha = 0.35;
+    bgCtx.globalAlpha = 0.3;
     bgCtx.beginPath();
     bgCtx.moveTo(x + Math.cos(points[0].angle) * points[0].r, y + Math.sin(points[0].angle) * points[0].r);
     for (let i = 1; i < points.length; i++) {
@@ -705,7 +702,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     onGameOver(stats, achievements);
   };
 
-  // Main 60 FPS Canvas Render Loop
+  // Main 60 FPS Canvas Single Render Loop
   useEffect(() => {
     let animationFrameId: number;
 
@@ -719,7 +716,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const height = canvas.height;
       const gravity = 0.38;
 
-      // Calculate FPS
       frameCountRef.current += 1;
       const now = Date.now();
       if (now - lastFpsTimeRef.current >= 1000) {
@@ -730,7 +726,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       ctx.clearRect(0, 0, width, height);
 
-      // Colorblind High Contrast Filter
       if (colorblindMode === 'high_contrast') {
         ctx.filter = 'contrast(1.5) saturate(1.8)';
       } else if (colorblindMode !== 'none') {
@@ -740,7 +735,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       if (isPlaying && !isPaused) {
-        // Update & Draw Boss if active
+        // Boss
         if (bossRef.current && !bossRef.current.isDefeated) {
           const boss = bossRef.current;
           boss.x += boss.vx;
@@ -752,7 +747,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
           drawBoss(ctx, boss);
 
-          // Draw Boss HP Bar
           ctx.save();
           ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
           ctx.fillRect(width / 2 - 150, 20, 300, 24);
@@ -771,7 +765,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.restore();
         }
 
-        // Update & Draw Floating Damage Numbers
+        // Damage Numbers
         damageNumbersRef.current.forEach((dmg) => {
           dmg.y -= 1.5;
           dmg.life += 1;
@@ -784,7 +778,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
         damageNumbersRef.current = damageNumbersRef.current.filter((d) => d.life < 35);
 
-        // Update & Draw Fruits
+        // Fruits
         fruitsRef.current.forEach((fruit) => {
           if (!fruit.isSliced) {
             fruit.x += fruit.vx;
@@ -814,7 +808,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               if (livesRef.current <= 0) endGame();
             }
           } else {
-            // Sliced Half Fruits Physics
             fruit.sliceProgress = (fruit.sliceProgress || 0) + 0.05;
 
             const lx = fruit.x + (fruit.leftHalfVx || 0) * (fruit.sliceProgress * 3);
@@ -839,7 +832,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
           ctx.strokeStyle = s.color;
           ctx.globalAlpha = Math.max(0, s.opacity);
-          ctx.lineWidth = 5;
+          ctx.lineWidth = 4;
           ctx.stroke();
           ctx.restore();
         });
@@ -862,19 +855,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.globalAlpha = 1;
         particlesRef.current = particlesRef.current.filter((p) => p.life < p.maxLife);
 
-        // Draw Hands & Blade Trail
+        // Hands & Trails
         drawHandsAndWeapons(ctx);
         drawBladeTrail(ctx);
 
-        // FPS & Performance HUD Overlay
+        // FPS HUD
         if (showFps) {
           ctx.save();
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+          ctx.fillStyle = 'rgba(8, 15, 35, 0.88)';
           ctx.fillRect(width - 110, 10, 100, 36);
-          ctx.strokeStyle = '#38bdf8';
+          ctx.strokeStyle = '#fbbf24';
           ctx.lineWidth = 1;
           ctx.strokeRect(width - 110, 10, 100, 36);
-          ctx.fillStyle = '#38bdf8';
+          ctx.fillStyle = '#fbbf24';
           ctx.font = 'bold 12px Outfit, sans-serif';
           ctx.fillText(`FPS: ${fpsRef.current}`, width - 100, 26);
           ctx.fillText(`OBJ: ${fruitsRef.current.length + particlesRef.current.length}`, width - 100, 40);
@@ -919,7 +912,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       ctx.save();
 
-      // Draw Finger Bone Connections if landmarks are available
+      // Draw Finger Bone Connections
       if (hand.landmarks && hand.landmarks.length >= 21) {
         const connections = [
           [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
@@ -934,7 +927,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.shadowColor = theme.glow;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
 
         connections.forEach(([i, j]) => {
           const p1 = hand.landmarks[i];
@@ -956,40 +949,40 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
       }
 
-      // Palm Energy Core Reactor
+      // Palm Energy Reactor
       ctx.beginPath();
-      ctx.arc(palmX, palmY, hand.isFist ? 28 : 22, 0, Math.PI * 2);
+      ctx.arc(palmX, palmY, hand.isFist ? 26 : 20, 0, Math.PI * 2);
       ctx.fillStyle = hand.isFist ? 'rgba(192, 132, 252, 0.35)' : 'rgba(56, 189, 248, 0.25)';
       ctx.fill();
       ctx.strokeStyle = hand.isFist ? '#c084fc' : theme.primary;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Weapon Emoji & Glow Indicator at Index Finger
+      // Weapon Emoji at Index Finger
       const weaponInfo = WEAPON_CATALOG[currentWeapon];
-      ctx.font = '32px Outfit, sans-serif';
+      ctx.font = '30px Outfit, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = theme.glow;
-      ctx.shadowBlur = 16;
+      ctx.shadowBlur = 14;
       ctx.fillText(weaponInfo.emoji, px, py - 10);
 
-      // Gesture Feedback Text (Fist / Palm)
+      // Gesture Text
       if (hand.isFist) {
         ctx.fillStyle = '#c084fc';
         ctx.font = 'bold 12px Outfit, sans-serif';
-        ctx.fillText('✊ VORTEX', palmX, palmY + 36);
+        ctx.fillText('✊ VORTEX', palmX, palmY + 32);
       } else if (hand.isOpenPalm) {
         ctx.fillStyle = '#34d399';
         ctx.font = 'bold 12px Outfit, sans-serif';
-        ctx.fillText('✋ PLASMA', palmX, palmY + 36);
+        ctx.fillText('✋ PLASMA', palmX, palmY + 32);
       }
 
       ctx.restore();
     });
   };
 
-  // Render Blade Trail according to style
+  // Render Blade Trail
   const drawBladeTrail = (ctx: CanvasRenderingContext2D) => {
     const points = bladePointsRef.current;
     if (points.length < 2) return;
@@ -1010,7 +1003,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const colors = styleColors[bladeStyle] || styleColors.electric;
 
     ctx.shadowColor = colors.glow;
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 16;
     ctx.strokeStyle = colors.glow;
 
     for (let i = 1; i < points.length; i++) {
@@ -1018,7 +1011,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const p2 = points[i];
       const widthRatio = i / points.length;
 
-      ctx.lineWidth = widthRatio * 14;
+      ctx.lineWidth = widthRatio * 12;
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
@@ -1032,7 +1025,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const p2 = points[i];
       const widthRatio = i / points.length;
 
-      ctx.lineWidth = widthRatio * 5;
+      ctx.lineWidth = widthRatio * 4;
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
@@ -1079,7 +1072,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   };
 
-  // Auto-resize canvas resolution to fill parent container
+  // Auto-resize canvas resolution
   useEffect(() => {
     const handleResize = () => {
       if (canvasRef.current && bgCanvasRef.current) {
